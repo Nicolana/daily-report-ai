@@ -1,52 +1,162 @@
 <template>
   <div class="home">
+    <!-- 顶部统计卡片 -->
     <el-row :gutter="20" class="mb-4">
-      <el-col :span="24">
-        <el-card>
-          <template #header>
-            <div class="card-header">
-              <span>本周概览</span>
-              <el-button type="primary" @click="$router.push('/new')">
-                写日报
-              </el-button>
+      <el-col :span="8">
+        <el-card shadow="hover" class="stat-card">
+          <div class="stat-content">
+            <div class="stat-icon">
+              <el-icon><Calendar /></el-icon>
             </div>
-          </template>
-          <div v-if="weeklyLogs.length === 0" class="empty-state">
-            <el-empty description="本周暂无日报" />
+            <div class="stat-info">
+              <div class="stat-value">{{ weeklyLogs.length }}</div>
+              <div class="stat-label">本周日报数</div>
+            </div>
           </div>
-          <div v-else class="log-list">
-            <div v-for="log in weeklyLogs" :key="log.id" class="log-item">
-              <h3>{{ formatDate(log.date) }}</h3>
-              <p>{{ log.content }}</p>
+        </el-card>
+      </el-col>
+      <el-col :span="8">
+        <el-card shadow="hover" class="stat-card">
+          <div class="stat-content">
+            <div class="stat-icon green">
+              <el-icon><Finished /></el-icon>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ completionRate }}%</div>
+              <div class="stat-label">本周完成率</div>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :span="8">
+        <el-card shadow="hover" class="stat-card">
+          <div class="stat-content">
+            <div class="stat-icon blue">
+              <el-icon><Timer /></el-icon>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value">{{ daysUntilWeekend }}</div>
+              <div class="stat-label">距离周末还有</div>
             </div>
           </div>
         </el-card>
       </el-col>
     </el-row>
 
-    <el-row :gutter="20">
-      <el-col :span="12">
-        <el-card>
+    <!-- 本周概览部分 -->
+    <el-row :gutter="20" class="mb-4">
+      <el-col :span="24">
+        <el-card shadow="hover">
           <template #header>
             <div class="card-header">
-              <span>周总结</span>
-              <el-button text @click="$router.push('/summary')">查看更多</el-button>
+              <div class="header-left">
+                <span class="section-title">本周概览</span>
+                <el-tag size="small" effect="plain" class="ml-2">
+                  第 {{ currentWeek }} 周
+                </el-tag>
+              </div>
+              <div class="header-right">
+                <el-button type="primary" @click="$router.push('/new')">
+                  <el-icon><Plus /></el-icon>写日报
+                </el-button>
+              </div>
             </div>
           </template>
-          <!-- TODO: 显示周总结内容 -->
-          <el-empty description="暂无周总结" />
+          
+          <div v-if="weeklyLogs.length === 0" class="empty-state">
+            <el-empty>
+              <template #description>
+                <p>本周暂无日报</p>
+                <p class="empty-tip">点击右上角按钮开始写今天的日报吧</p>
+              </template>
+              <el-button type="primary" @click="$router.push('/new')">
+                立即写日报
+              </el-button>
+            </el-empty>
+          </div>
+          
+          <div v-else class="log-list">
+            <div v-for="log in weeklyLogs" :key="log.id" class="log-item">
+              <div class="log-header">
+                <h3>
+                  <el-icon><Calendar /></el-icon>
+                  {{ formatDate(log.date) }}
+                </h3>
+                <el-dropdown>
+                  <el-button link>
+                    <el-icon><More /></el-icon>
+                  </el-button>
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item @click="editLog(log)">编辑</el-dropdown-item>
+                      <el-dropdown-item @click="copyLog(log)">复制</el-dropdown-item>
+                      <el-dropdown-item divided danger @click="deleteLog(log)">
+                        删除
+                      </el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+              </div>
+              <div class="log-content markdown-preview" v-html="renderMarkdown(log.content)" />
+            </div>
+          </div>
         </el-card>
       </el-col>
+    </el-row>
+
+    <!-- 总结部分 -->
+    <el-row :gutter="20">
       <el-col :span="12">
-        <el-card>
+        <el-card shadow="hover" class="summary-card">
           <template #header>
             <div class="card-header">
-              <span>月总结</span>
-              <el-button text @click="$router.push('/summary')">查看更多</el-button>
+              <div class="header-left">
+                <span class="section-title">周总结</span>
+                <el-tag size="small" type="success" effect="plain" class="ml-2">
+                  本周
+                </el-tag>
+              </div>
+              <el-button text @click="$router.push('/summary')">
+                查看更多<el-icon class="el-icon--right"><ArrowRight /></el-icon>
+              </el-button>
             </div>
           </template>
-          <!-- TODO: 显示月总结内容 -->
-          <el-empty description="暂无月总结" />
+          <div class="summary-content">
+            <el-empty>
+              <template #description>
+                <p>本周总结尚未生成</p>
+                <p class="empty-tip">周五将自动为您生成本周总结</p>
+              </template>
+              <el-button type="primary" plain>立即生成</el-button>
+            </el-empty>
+          </div>
+        </el-card>
+      </el-col>
+      
+      <el-col :span="12">
+        <el-card shadow="hover" class="summary-card">
+          <template #header>
+            <div class="card-header">
+              <div class="header-left">
+                <span class="section-title">月总结</span>
+                <el-tag size="small" type="warning" effect="plain" class="ml-2">
+                  {{ currentMonth }}月
+                </el-tag>
+              </div>
+              <el-button text @click="$router.push('/summary')">
+                查看更多<el-icon class="el-icon--right"><ArrowRight /></el-icon>
+              </el-button>
+            </div>
+          </template>
+          <div class="summary-content">
+            <el-empty>
+              <template #description>
+                <p>本月总结尚未生成</p>
+                <p class="empty-tip">每月最后一天将自动为您生成月度总结</p>
+              </template>
+              <el-button type="primary" plain>立即生成</el-button>
+            </el-empty>
+          </div>
         </el-card>
       </el-col>
     </el-row>
@@ -54,10 +164,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useLogStore } from '../stores/logStore'
-import { format } from 'date-fns'
+import { format, getWeek, getDay } from 'date-fns'
+import zhCN from 'date-fns/locale/zh-CN'
+import { Calendar, Finished, Timer, Plus, More, ArrowRight } from '@element-plus/icons-vue'
+import { ElMessageBox, ElMessage } from 'element-plus'
+import MarkdownIt from 'markdown-it'
 
+const md = new MarkdownIt()
 const store = useLogStore()
 
 // 获取本周的日志
@@ -72,35 +187,153 @@ const weeklyLogs = computed(() => {
   )
 })
 
+// 计算统计数据
+const currentWeek = computed(() => getWeek(new Date()))
+const currentMonth = computed(() => new Date().getMonth() + 1)
+const completionRate = computed(() => {
+  const workDays = 5 // 假设一周工作5天
+  const completedDays = weeklyLogs.value.length
+  return Math.round((completedDays / workDays) * 100)
+})
+const daysUntilWeekend = computed(() => {
+  const today = getDay(new Date())
+  return today === 0 || today === 6 ? 0 : 6 - today
+})
+
 const formatDate = (dateStr: string) => {
-  return format(new Date(dateStr), 'yyyy年MM月dd日')
+  return format(new Date(dateStr), 'yyyy年MM月dd日 EEEE', { locale: zhCN })
+}
+
+const renderMarkdown = (content: string) => {
+  return md.render(content)
+}
+
+// 日志操作方法
+const editLog = (log: any) => {
+  // TODO: 实现编辑功能
+}
+
+const copyLog = async (log: any) => {
+  try {
+    await navigator.clipboard.writeText(log.content)
+    ElMessage.success('日志内容已复制到剪贴板')
+  } catch (err) {
+    ElMessage.error('复制失败')
+  }
+}
+
+const deleteLog = (log: any) => {
+  ElMessageBox.confirm(
+    '确定要删除这条日报吗？此操作不可恢复',
+    '警告',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    }
+  ).then(() => {
+    // TODO: 实现删除功能
+    ElMessage.success('删除成功')
+  })
 }
 </script>
 
 <style scoped>
 .home {
   padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .mb-4 {
-  margin-bottom: 16px;
+  margin-bottom: 24px;
 }
 
+.ml-2 {
+  margin-left: 8px;
+}
+
+/* 统计卡片样式 */
+.stat-card {
+  transition: all 0.3s;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+}
+
+.stat-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background-color: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.stat-icon.green {
+  background-color: var(--el-color-success-light-9);
+  color: var(--el-color-success);
+}
+
+.stat-icon.blue {
+  background-color: var(--el-color-info-light-9);
+  color: var(--el-color-info);
+}
+
+.stat-info {
+  flex: 1;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--el-text-color-primary);
+}
+
+.stat-label {
+  font-size: 14px;
+  color: var(--el-text-color-secondary);
+  margin-top: 4px;
+}
+
+/* 卡片头部样式 */
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
+.header-left {
+  display: flex;
+  align-items: center;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* 日志列表样式 */
 .log-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px;
 }
 
 .log-item {
-  border-bottom: 1px solid #eee;
-  padding-bottom: 16px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  padding-bottom: 24px;
 }
 
 .log-item:last-child {
@@ -108,18 +341,73 @@ const formatDate = (dateStr: string) => {
   padding-bottom: 0;
 }
 
-.log-item h3 {
-  margin: 0 0 8px 0;
-  font-size: 16px;
-  color: #666;
+.log-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
 }
 
-.log-item p {
+.log-header h3 {
   margin: 0;
-  color: #333;
+  font-size: 16px;
+  color: var(--el-text-color-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
+.log-content {
+  color: var(--el-text-color-regular);
+  line-height: 1.6;
+}
+
+/* 空状态样式 */
 .empty-state {
-  padding: 40px 0;
+  padding: 48px 0;
+}
+
+.empty-tip {
+  font-size: 14px;
+  color: var(--el-text-color-secondary);
+  margin-top: 8px;
+}
+
+/* Markdown 预览样式 */
+.markdown-preview {
+  line-height: 1.6;
+}
+
+.markdown-preview :deep(h1),
+.markdown-preview :deep(h2),
+.markdown-preview :deep(h3) {
+  margin-top: 24px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.markdown-preview :deep(p) {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.markdown-preview :deep(ul),
+.markdown-preview :deep(ol) {
+  padding-left: 2em;
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+/* 总结卡片样式 */
+.summary-card {
+  height: 100%;
+}
+
+.summary-content {
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style> 
