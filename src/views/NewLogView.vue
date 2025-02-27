@@ -1,37 +1,69 @@
 <template>
-  <div class="new-log">
-    <el-card v-loading="store.loading" class="new-log-cream-card">
-      <template #header>
-        <div class="new-log-card-header">
-          <div class="new-log-header-content">
-            <h2>{{ greeting }}</h2>
-            <div class="new-log-description">记录今天的工作点滴</div>
-          </div>
-          <el-date-picker
-            v-model="selectedDate"
-            type="date"
-            placeholder="选择日期"
-            :disabled-date="disableFutureDates"
-            format="YYYY年MM月DD日"
-            value-format="YYYY-MM-DD"
-          />
+  <div class="new-log" v-loading="store.loading">
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="header-content">
+        <div class="header-left">
+          <h2 class="page-title">{{ greeting }}</h2>
+          <div class="page-subtitle">记录今天的工作点滴</div>
         </div>
-      </template>
-      
-      <div class="new-log-editor-container">
-        <MdEditor
-          v-model="content"
-          preview
-          @onSave="handleSave"
-          :noMermaid="true"
+        <el-date-picker
+          v-model="selectedDate"
+          type="date"
+          placeholder="选择日期"
+          :disabled-date="disableFutureDates"
+          format="YYYY年MM月DD日"
+          value-format="YYYY-MM-DD"
+          class="date-picker"
         />
       </div>
-
-      <div class="new-log-actions">
-        <el-button @click="$router.push('/')">取消</el-button>
-        <el-button type="primary" @click="handleSave">保存</el-button>
+    </div>
+    
+    <!-- 编辑器区域 -->
+    <div class="editor-section">
+      <div class="editor-wrapper">
+        <div class="editor-toolbar">
+          <div class="toolbar-left">
+            <el-tooltip content="支持 Markdown 语法" placement="top">
+              <el-icon class="toolbar-icon"><InfoFilled /></el-icon>
+            </el-tooltip>
+            <span class="toolbar-text">编辑器</span>
+          </div>
+          <div class="toolbar-right">
+            <el-tooltip content="预览模式" placement="top">
+              <el-switch v-model="isPreview" />
+            </el-tooltip>
+          </div>
+        </div>
+        
+        <div class="editor-container">
+          <MdEditor
+            v-model="content"
+            :preview="isPreview"
+            @onSave="handleSave"
+            :noMermaid="true"
+            :toolbars="toolbars"
+            class="md-editor"
+          />
+        </div>
       </div>
-    </el-card>
+
+      <!-- 底部操作栏 -->
+      <div class="action-bar">
+        <div class="action-left">
+          <el-text class="tip-text" type="info">
+            <el-icon><Timer /></el-icon>
+            自动保存中...
+          </el-text>
+        </div>
+        <div class="action-right">
+          <el-button @click="$router.push('/')" plain>取消</el-button>
+          <el-button type="primary" @click="handleSave" :loading="saving">
+            {{ saving ? '保存中...' : '保存' }}
+          </el-button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -41,6 +73,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useLogStore } from '../stores/logStore'
 import { MdEditor, type ToolbarNames } from 'md-editor-v3'
+import { InfoFilled, Timer } from '@element-plus/icons-vue'
 import 'md-editor-v3/lib/style.css'
 import dayjs from '../utils/dayjs'
 
@@ -49,31 +82,41 @@ const store = useLogStore()
 
 const greeting = computed(() => {
   const hour = dayjs().hour()
-  if (hour < 12) return '早安'
+  if (hour < 6) return '凌晨好'
+  if (hour < 9) return '早安'
+  if (hour < 12) return '上午好'
+  if (hour < 14) return '中午好'
   if (hour < 18) return '下午好'
-  return '晚上好'
+  if (hour < 22) return '晚上好'
+  return '夜深了'
 })
 
 const selectedDate = ref(dayjs().format('YYYY-MM-DD'))
 const content = ref('')
+const isPreview = ref(false)
+const saving = ref(false)
 
-const toolbars = [
+const toolbars: ToolbarNames[] = [
   'bold',
   'underline',
   'italic',
   'strikeThrough',
+  '-',
   'title',
   'sub',
   'sup',
+  '-',
   'quote',
   'unorderedList',
   'orderedList',
+  '-',
   'codeRow',
   'code',
   'link',
   'table',
+  '-',
   'fullscreen'
-] as Array<ToolbarNames>
+]
 
 const disableFutureDates = (date: Date) => {
   return dayjs(date).isAfter(dayjs())
@@ -85,94 +128,203 @@ const handleSave = async () => {
     return
   }
 
+  saving.value = true
   try {
     await store.addLog(content.value, selectedDate.value)
     ElMessage.success('保存成功')
     router.push('/')
   } catch (error) {
     ElMessage.error(store.error || '保存失败')
+  } finally {
+    saving.value = false
   }
 }
 </script>
 
 <style scoped>
 .new-log {
-  padding: 20px;
-  background-color: #F8FBFF;  /* 淡淡的天空蓝 */
-  min-height: 100vh;
+  max-width: 1000px;
+  margin: 0 auto;
+  min-height: calc(100vh - 64px); /* 减去顶部导航的高度 */
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+  padding: var(--spacing-xl) var(--spacing-lg);
 }
 
-.new-log-cream-card {
-  border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(176, 196, 222, 0.08);
-  background-color: #FFFFFF;
-  border: none;
+/* 页面头部样式 */
+.page-header {
+  position: relative;
 }
 
-.new-log-card-header {
+.header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.new-log-header-content h2 {
+.header-left {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.page-title {
   margin: 0;
-  font-size: 24px;
-  color: rgba(0, 0, 0);
+  font-size: 28px;
   font-weight: 600;
+  background: var(--primary-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-.new-log-description {
-  margin: 0;
-  color: #525252;
+.page-subtitle {
+  color: var(--text-secondary);
   font-size: 14px;
-  margin-top: 8px;
 }
 
-.new-log-editor-container {
-  margin: 20px 0;
-  min-height: 500px;
+.date-picker {
+  width: 180px;
+}
+
+/* 编辑器区域样式 */
+.editor-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: var(--spacing-lg);
+}
+
+.editor-wrapper {
+  flex: 1;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+  background: var(--bg-secondary);
+}
+
+.editor-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.toolbar-icon {
+  color: var(--primary-color);
+  font-size: 16px;
+}
+
+.toolbar-text {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.editor-container {
+  height: calc(100vh - 300px); /* 动态计算编辑器高度 */
+  min-height: 400px;
 }
 
 :deep(.md-editor) {
-  height: 500px;
-  border-radius: 12px;
-  border-color: #E8F1F8;  /* 浅蓝色边框 */
+  border: none !important;
+  height: 100% !important;
 }
 
 :deep(.md-editor-toolbar) {
-  background-color: #F8FBFF !important;
-  border-color: #E8F1F8 !important;
-  border-radius: 12px 12px 0 0;
+  background-color: var(--bg-secondary) !important;
+  border-bottom: 1px solid var(--border-color) !important;
 }
 
 :deep(.md-editor-content) {
-  background-color: #FFFFFF !important;
+  background-color: var(--bg-secondary) !important;
 }
 
-.new-log-actions {
+/* 底部操作栏样式 */
+.action-bar {
   display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 20px;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--border-color);
 }
 
-:deep(.el-button) {
-  border-radius: 8px;
-  font-weight: 500;
+.action-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.tip-text {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: 14px;
+}
+
+.action-right {
+  display: flex;
+  gap: var(--spacing-sm);
 }
 
 :deep(.el-button--primary) {
-  background-color: #5B8FB9;
-  border-color: #5B8FB9;
+  min-width: 100px;
+  background-image: var(--primary-gradient);
+  border: none;
+  transition: all 0.3s ease;
 }
 
 :deep(.el-button--primary:hover) {
-  background-color: #7BA7C7;
-  border-color: #7BA7C7;
+  opacity: 0.9;
+  transform: translateY(-1px);
 }
 
-:deep(.el-date-picker) {
-  --el-color-primary: #5B8FB9;
+/* Markdown 编辑器主题覆盖 */
+:deep(.md-editor-toolbar-wrapper) {
+  background: var(--bg-tertiary) !important;
+}
+
+:deep(.md-editor-toolbar button) {
+  color: var(--text-secondary) !important;
+}
+
+:deep(.md-editor-toolbar button:hover) {
+  color: var(--primary-color) !important;
+  background-color: var(--bg-secondary) !important;
+}
+
+:deep(.md-editor-input) {
+  padding: var(--spacing-lg) !important;
+}
+
+:deep(.md-editor-preview) {
+  padding: var(--spacing-lg) !important;
+  background-color: var(--bg-secondary) !important;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .new-log {
+    padding: var(--spacing-md);
+  }
+
+  .page-title {
+    font-size: 24px;
+  }
+
+  .editor-container {
+    height: calc(100vh - 250px);
+  }
 }
 </style> 

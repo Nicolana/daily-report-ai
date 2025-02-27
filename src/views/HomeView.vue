@@ -1,113 +1,92 @@
 <template>
   <div class="home">
     <!-- 顶部统计卡片 -->
-    <el-row :gutter="20" class="mb-4" v-loading="store.loading">
-      <el-col :span="8">
-        <el-card shadow="hover" class="stat-card">
-          <div class="stat-content">
-            <div class="stat-icon">
-              <el-icon><Calendar /></el-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ weeklyLogs.length }}</div>
-              <div class="stat-label">本周日报数</div>
-            </div>
+    <el-row :gutter="20" class="stats-row">
+      <el-col :span="6" v-for="stat in stats" :key="stat.label">
+        <div class="stat-card" :class="stat.type">
+          <div class="stat-icon">
+            <el-icon><component :is="stat.icon" /></el-icon>
           </div>
-        </el-card>
-      </el-col>
-      <el-col :span="8">
-        <el-card shadow="hover" class="stat-card">
-          <div class="stat-content">
-            <div class="stat-icon green">
-              <el-icon><Finished /></el-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ completionRate }}%</div>
-              <div class="stat-label">本周完成率</div>
-            </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ stat.value }}</div>
+            <div class="stat-label">{{ stat.label }}</div>
           </div>
-        </el-card>
-      </el-col>
-      <el-col :span="8">
-        <el-card shadow="hover" class="stat-card">
-          <div class="stat-content">
-            <div class="stat-icon blue">
-              <el-icon><Timer /></el-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ daysUntilWeekend }}</div>
-              <div class="stat-label">距离周末还有</div>
-            </div>
-          </div>
-        </el-card>
+        </div>
       </el-col>
     </el-row>
 
     <!-- 本周概览部分 -->
-    <el-row :gutter="20" class="mb-4">
-      <el-col :span="24">
-        <el-card shadow="hover">
-          <template #header>
-            <div class="card-header">
-              <div class="header-left">
-                <span class="section-title">本周概览</span>
-                <el-tag size="small" effect="plain" class="ml-2">
-                  第 {{ currentWeek }} 周
-                </el-tag>
+    <div class="weekly-overview">
+      <el-card class="overview-card">
+        <template #header>
+          <div class="card-header">
+            <div class="header-left">
+              <span class="section-title">本周概览</span>
+              <el-tag size="small" effect="plain" class="week-tag">
+                第 {{ currentWeek }} 周
+              </el-tag>
+            </div>
+            <div class="header-right">
+              <el-button type="primary" @click="$router.push('/new')">
+                <el-icon><Plus /></el-icon>写日报
+              </el-button>
+            </div>
+          </div>
+        </template>
+        
+        <div v-if="weeklyLogs.length === 0" class="empty-state">
+          <el-empty>
+            <template #description>
+              <p>本周暂无日报</p>
+              <p class="empty-tip">开始记录你的工作点滴吧</p>
+            </template>
+            <el-button type="primary" @click="$router.push('/new')">
+              立即写日报
+            </el-button>
+          </el-empty>
+        </div>
+        
+        <div v-else class="log-list">
+          <div v-for="log in weeklyLogs" :key="log.id" class="log-item">
+            <div class="log-header">
+              <div class="log-date">
+                <el-icon><Calendar /></el-icon>
+                <span>{{ formatDate(log.report_date) }}</span>
               </div>
-              <div class="header-right">
-                <el-button type="primary" @click="$router.push('/new')">
-                  <el-icon><Plus /></el-icon>写日报
+              <div class="log-actions">
+                <el-button 
+                  link 
+                  type="primary" 
+                  @click="editLog(log)"
+                >
+                  <el-icon><EditPen /></el-icon>
+                </el-button>
+                <el-button 
+                  link 
+                  type="primary" 
+                  @click="copyLog(log)"
+                >
+                  <el-icon><CopyDocument /></el-icon>
+                </el-button>
+                <el-button 
+                  link 
+                  type="danger" 
+                  @click="deleteLog(log)"
+                >
+                  <el-icon><Delete /></el-icon>
                 </el-button>
               </div>
             </div>
-          </template>
-          
-          <div v-if="weeklyLogs.length === 0" class="empty-state">
-            <el-empty>
-              <template #description>
-                <p>本周暂无日报</p>
-                <p class="empty-tip">点击右上角按钮开始写今天的日报吧</p>
-              </template>
-              <el-button type="primary" @click="$router.push('/new')">
-                立即写日报
-              </el-button>
-            </el-empty>
+            <div class="log-content markdown-body" v-html="renderMarkdown(log.content)" />
           </div>
-          
-          <div v-else class="log-list">
-            <div v-for="log in weeklyLogs" :key="log.id" class="log-item">
-              <div class="log-header">
-                <h3>
-                  <el-icon><Calendar /></el-icon>
-                  {{ formatDate(log.report_date) }}
-                </h3>
-                <el-dropdown>
-                  <el-button link>
-                    <el-icon><More /></el-icon>
-                  </el-button>
-                  <template #dropdown>
-                    <el-dropdown-menu>
-                      <el-dropdown-item @click="editLog(log)">编辑</el-dropdown-item>
-                      <el-dropdown-item @click="copyLog(log)">复制</el-dropdown-item>
-                      <el-dropdown-item divided danger @click="deleteLog(log)">
-                        删除
-                      </el-dropdown-item>
-                    </el-dropdown-menu>
-                  </template>
-                </el-dropdown>
-              </div>
-              <div class="log-content markdown-body" v-html="renderMarkdown(log.content)" />
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-    </el-row>
+        </div>
+      </el-card>
+    </div>
 
     <!-- 总结部分 -->
-    <el-row :gutter="20">
+    <el-row :gutter="20" class="summary-row">
       <el-col :span="12">
-        <el-card shadow="hover" class="summary-card">
+        <el-card class="summary-card" shadow="hover">
           <template #header>
             <div class="card-header">
               <div class="header-left">
@@ -116,7 +95,7 @@
                   本周
                 </el-tag>
               </div>
-              <el-button text @click="$router.push('/summary')">
+              <el-button text type="primary" @click="$router.push('/summary')">
                 查看更多<el-icon class="el-icon--right"><ArrowRight /></el-icon>
               </el-button>
             </div>
@@ -134,7 +113,7 @@
       </el-col>
       
       <el-col :span="12">
-        <el-card shadow="hover" class="summary-card">
+        <el-card class="summary-card" shadow="hover">
           <template #header>
             <div class="card-header">
               <div class="header-left">
@@ -143,7 +122,7 @@
                   {{ currentMonth }}月
                 </el-tag>
               </div>
-              <el-button text @click="$router.push('/summary')">
+              <el-button text type="primary" @click="$router.push('/summary')">
                 查看更多<el-icon class="el-icon--right"><ArrowRight /></el-icon>
               </el-button>
             </div>
@@ -166,9 +145,20 @@
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue'
 import { useLogStore } from '../stores/logStore'
-import { Calendar, Finished, Timer, Plus, More, ArrowRight } from '@element-plus/icons-vue'
+import { useRouter } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { renderMarkdown } from '../utils/markdown'
+import {
+  Calendar,
+  EditPen,
+  CopyDocument,
+  Delete,
+  Plus,
+  ArrowRight,
+  Finished,
+  Timer,
+  Document
+} from '@element-plus/icons-vue'
 import {
   formatDate,
   getCurrentWeek,
@@ -177,7 +167,6 @@ import {
   getWeekRange
 } from '../utils/dayjs'
 import type { DailyReport } from '../api/dailyReport'
-import { useRouter } from 'vue-router'
 
 const store = useLogStore()
 const router = useRouter()
@@ -191,6 +180,33 @@ const weeklyLogs = computed(() => {
   return store.getLogsByDateRange(start, end)
 })
 
+const stats = computed(() => [
+  {
+    label: '本周日报数',
+    value: weeklyLogs.value.length,
+    icon: 'Document',
+    type: 'primary'
+  },
+  {
+    label: '本周完成率',
+    value: `${completionRate.value}%`,
+    icon: 'Finished',
+    type: 'success'
+  },
+  {
+    label: '距离周末还有',
+    value: daysUntilWeekend.value,
+    icon: 'Timer',
+    type: 'info'
+  },
+  {
+    label: '本月累计',
+    value: store.logs.length,
+    icon: 'Calendar',
+    type: 'warning'
+  }
+])
+
 const currentWeek = computed(() => getCurrentWeek())
 const currentMonth = computed(() => getCurrentMonth())
 const completionRate = computed(() => {
@@ -200,16 +216,11 @@ const completionRate = computed(() => {
 })
 const daysUntilWeekend = computed(() => getDaysUntilWeekend())
 
-const handleEdit = (log: DailyReport) => {
+const editLog = (log: DailyReport) => {
   router.push(`/edit/${log.id}`)
 }
 
-// 日志操作方法
-const editLog = (log: any) => {
-  // TODO: 实现编辑功能
-}
-
-const copyLog = async (log: any) => {
+const copyLog = async (log: DailyReport) => {
   try {
     await navigator.clipboard.writeText(log.content)
     ElMessage.success('日志内容已复制到剪贴板')
@@ -241,54 +252,62 @@ const deleteLog = async (log: DailyReport) => {
 
 <style scoped>
 .home {
-  padding: 20px;
   max-width: 1200px;
   margin: 0 auto;
 }
 
-.mb-4 {
-  margin-bottom: 24px;
-}
-
-.ml-2 {
-  margin-left: 8px;
-}
-
 /* 统计卡片样式 */
+.stats-row {
+  margin-bottom: var(--spacing-lg);
+}
+
 .stat-card {
-  transition: all 0.3s;
+  background-color: var(--bg-secondary);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s ease;
 }
 
 .stat-card:hover {
   transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
-.stat-content {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+.stat-card.primary .stat-icon {
+  background-color: rgba(96, 199, 183, 0.1);
+  color: var(--primary-color);
+}
+
+.stat-card.success .stat-icon {
+  background-color: rgba(205, 245, 163, 0.1);
+  color: var(--secondary-color);
+}
+
+.stat-card.info .stat-icon {
+  background-color: #f0f9ff;
+  color: #409eff;
+}
+
+.stat-card.warning .stat-icon {
+  background-color: #fdf6ec;
+  color: #e6a23c;
 }
 
 .stat-icon {
   width: 48px;
   height: 48px;
-  border-radius: 12px;
-  background-color: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
+  border-radius: var(--border-radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.stat-icon .el-icon {
   font-size: 24px;
-}
-
-.stat-icon.green {
-  background-color: var(--el-color-success-light-9);
-  color: var(--el-color-success);
-}
-
-.stat-icon.blue {
-  background-color: var(--el-color-info-light-9);
-  color: var(--el-color-info);
 }
 
 .stat-info {
@@ -298,17 +317,25 @@ const deleteLog = async (log: DailyReport) => {
 .stat-value {
   font-size: 24px;
   font-weight: 600;
+  color: var(--text-primary);
   line-height: 1.2;
-  color: var(--el-text-color-primary);
 }
 
 .stat-label {
   font-size: 14px;
-  color: var(--el-text-color-secondary);
-  margin-top: 4px;
+  color: var(--text-secondary);
+  margin-top: var(--spacing-xs);
 }
 
-/* 卡片头部样式 */
+/* 周概览卡片样式 */
+.weekly-overview {
+  margin-bottom: var(--spacing-lg);
+}
+
+.overview-card {
+  background: var(--bg-secondary);
+}
+
 .card-header {
   display: flex;
   justify-content: space-between;
@@ -318,91 +345,77 @@ const deleteLog = async (log: DailyReport) => {
 .header-left {
   display: flex;
   align-items: center;
+  gap: var(--spacing-sm);
 }
 
 .section-title {
   font-size: 16px;
   font-weight: 600;
+  color: var(--text-primary);
+}
+
+.week-tag {
+  background: var(--bg-tertiary);
+  color: var(--primary-color);
+  border-color: var(--primary-light);
 }
 
 /* 日志列表样式 */
 .log-list {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--spacing-lg);
 }
 
 .log-item {
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  padding-bottom: 24px;
+  padding: var(--spacing-lg);
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius-md);
+  transition: all 0.3s ease;
 }
 
-.log-item:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
+.log-item:hover {
+  background: var(--bg-secondary);
+  box-shadow: var(--shadow-sm);
 }
 
 .log-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: var(--spacing-md);
 }
 
-.log-header h3 {
-  margin: 0;
-  font-size: 16px;
-  color: var(--el-text-color-primary);
+.log-date {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-sm);
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.log-actions {
+  display: flex;
+  gap: var(--spacing-xs);
 }
 
 .log-content {
-  color: var(--el-text-color-regular);
+  color: var(--text-primary);
   line-height: 1.6;
-}
-
-/* 空状态样式 */
-.empty-state {
-  padding: 48px 0;
-}
-
-.empty-tip {
-  font-size: 14px;
-  color: var(--el-text-color-secondary);
-  margin-top: 8px;
-}
-
-/* Markdown 预览样式 */
-.markdown-body {
-  font-size: 14px;
-  line-height: 1.6;
-}
-
-.markdown-body h1,
-.markdown-body h2,
-.markdown-body h3 {
-  margin-top: 24px;
-  margin-bottom: 16px;
-  font-weight: 600;
-  line-height: 1.25;
-}
-
-.markdown-body p {
-  margin-top: 0;
-  margin-bottom: 16px;
-}
-
-.markdown-body ul,
-.markdown-body ol {
-  padding-left: 2em;
-  margin-bottom: 16px;
 }
 
 /* 总结卡片样式 */
+.summary-row {
+  margin-bottom: var(--spacing-lg);
+}
+
 .summary-card {
   height: 100%;
+  transition: all 0.3s ease;
+}
+
+.summary-card:hover {
+  transform: translateY(-2px);
 }
 
 .summary-content {
@@ -410,5 +423,43 @@ const deleteLog = async (log: DailyReport) => {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* Empty 状态样式 */
+.empty-state {
+  padding: var(--spacing-xl) 0;
+}
+
+.empty-tip {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-top: var(--spacing-xs);
+}
+
+/* Markdown 样式 */
+:deep(.markdown-body) {
+  background: none;
+  font-size: 14px;
+}
+
+:deep(.markdown-body h1),
+:deep(.markdown-body h2),
+:deep(.markdown-body h3) {
+  margin-top: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+:deep(.markdown-body p) {
+  margin-top: 0;
+  margin-bottom: var(--spacing-md);
+  color: var(--text-secondary);
+}
+
+:deep(.markdown-body ul),
+:deep(.markdown-body ol) {
+  padding-left: var(--spacing-xl);
+  margin-bottom: var(--spacing-md);
 }
 </style> 
