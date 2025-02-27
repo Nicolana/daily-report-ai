@@ -218,19 +218,24 @@ const copyLog = async (log: any) => {
   }
 }
 
-const deleteLog = (log: any) => {
-  ElMessageBox.confirm(
-    '确定要删除这条日报吗？此操作不可恢复',
-    '警告',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning',
-    }
-  ).then(() => {
-    // TODO: 实现删除功能
+const deleteLog = async (log: DailyReport) => {
+  try {
+    await ElMessageBox.confirm(
+      '确定要删除这条日报吗？此操作不可恢复',
+      '警告',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    )
+    await store.deleteLog(log.id)
     ElMessage.success('删除成功')
-  })
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error(store.error || '删除失败')
+    }
+  }
 }
 </script>
 

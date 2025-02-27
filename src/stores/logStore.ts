@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { dailyReportApi, type DailyReport } from '../api/dailyReport'
+import dayjs from '../utils/dayjs'
 
 interface LogState {
   logs: DailyReport[]
@@ -16,14 +17,14 @@ export const useLogStore = defineStore('log', {
   
   getters: {
     getLogsByDate: (state) => (date: string) => {
-      return state.logs.filter((log) => log.report_date.startsWith(date))
+      return state.logs.filter((log) => dayjs(log.report_date).format('YYYY-MM-DD') === date)
     },
     
     getLogsByDateRange: (state) => (startDate: string, endDate: string) => {
       return state.logs.filter((log) => {
-        const reportDate = log.report_date.split('T')[0]
+        const reportDate = dayjs(log.report_date).format('YYYY-MM-DD')
         return reportDate >= startDate && reportDate <= endDate
-      })
+      }).sort((a, b) => dayjs(b.report_date).valueOf() - dayjs(a.report_date).valueOf())
     }
   },
   
@@ -47,9 +48,9 @@ export const useLogStore = defineStore('log', {
       try {
         const newLog = await dailyReportApi.create({
           content,
-          report_date: new Date(date).toISOString()
+          report_date: dayjs(date).toISOString()
         })
-        this.logs.push(newLog)
+        this.logs.unshift(newLog)
       } catch (error) {
         this.error = '添加日志失败'
         console.error('Failed to add log:', error)

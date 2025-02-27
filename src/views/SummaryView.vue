@@ -24,7 +24,7 @@
                 <el-timeline-item
                   v-for="log in weeklyLogs"
                   :key="log.id"
-                  :timestamp="formatDate(log.date)"
+                  :timestamp="formatDateSimple(log.report_date)"
                   placement="top"
                 >
                   <MarkedVue :content="log.content" />
@@ -82,7 +82,7 @@
                 <el-timeline-item
                   v-for="log in monthlyLogs"
                   :key="log.id"
-                  :timestamp="formatDate(log.date)"
+                  :timestamp="formatDateSimple(log.report_date)"
                   placement="top"
                 >
                   <MarkedVue :content="log.content" />
@@ -189,6 +189,10 @@ const handleMonthChange = (date: string | null) => {
 
 // 格式化日期
 const formatDate = (dateStr: string) => {
+  return dayjs(dateStr).format('YYYY年MM月DD日')
+}
+
+const formatDateSimple = (dateStr: string) => {
   return dayjs(dateStr).format('YYYY年MM月DD日')
 }
 
