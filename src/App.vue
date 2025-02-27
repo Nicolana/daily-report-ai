@@ -24,8 +24,10 @@ const pageTitle = computed(() => {
       <el-container>
         <el-aside width="240px" class="sidebar">
           <div class="logo">
-            <!-- <img src="@/assets/logo.png" alt="Logo" /> -->
-            <h1>日报助手</h1>
+            <div class="logo-content">
+              <span class="logo-text">BayTu</span>
+              <span class="logo-subtitle">智能日报助手</span>
+            </div>
           </div>
           
           <el-menu
@@ -110,21 +112,28 @@ const pageTitle = computed(() => {
   align-items: center;
   justify-content: center;
   border-bottom: 1px solid var(--border-color);
+  height: 64px;
 }
 
-.logo img {
-  width: 32px;
-  height: 32px;
+.logo-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.logo h1 {
-  margin: 0;
-  font-size: 18px;
-  color: var(--text-primary);
+.logo-text {
+  font-size: 24px;
   font-weight: 600;
   background: var(--primary-gradient);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  letter-spacing: 1px;
+}
+
+.logo-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
 }
 
 .nav-menu {
@@ -135,36 +144,49 @@ const pageTitle = computed(() => {
 
 :deep(.el-menu-item) {
   height: 48px;
-  margin: 4px 12px;
-  border-radius: var(--border-radius-sm);
-  color: var(--text-secondary);
+  margin: 4px var(--spacing-md);
+  border-radius: var(--border-radius-md);
+  color: var(--text-light);
+  font-size: 14px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 :deep(.el-menu-item.is-active) {
-  background-image: var(--primary-gradient) !important;
-  color: white !important;
+  background-image: linear-gradient(135deg, rgba(96, 199, 183, 0.2) 0%, rgba(205, 245, 163, 0.2) 100%) !important;
+  color: var(--primary-color) !important;
+  font-weight: 500;
+  position: relative;
+  overflow: hidden;
+}
+
+:deep(.el-menu-item.is-active::before) {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-image: var(--primary-gradient);
+  border-radius: 0 2px 2px 0;
 }
 
 :deep(.el-menu-item:hover:not(.is-active)) {
-  background-color: rgba(96, 199, 183, 0.1) !important;
+  background-color: rgba(96, 199, 183, 0.08) !important;
   color: var(--primary-color) !important;
 }
 
-.sidebar-footer {
-  padding: var(--spacing-lg);
-  border-top: 1px solid var(--border-color);
+:deep(.el-menu-item .el-icon) {
+  color: inherit;
+  font-size: 18px;
+  margin-right: var(--spacing-md);
 }
 
-.sidebar-footer .el-button {
-  width: 100%;
-  background-image: var(--primary-gradient);
-  border: none;
-  transition: all 0.3s ease;
+:deep(.el-menu-item:not(.is-active)) {
+  opacity: 0.75;
 }
 
-.sidebar-footer .el-button:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
+:deep(.el-menu-item:not(.is-active):hover) {
+  opacity: 1;
 }
 
 .main-container {
@@ -210,6 +232,24 @@ const pageTitle = computed(() => {
 .el-main {
   padding: var(--spacing-lg);
   background-color: #fafafa;
+}
+
+.sidebar-footer {
+  padding: var(--spacing-lg);
+  border-top: 1px solid var(--border-color);
+}
+
+.sidebar-footer .el-button {
+  width: 100%;
+  background-image: var(--primary-gradient);
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.sidebar-footer .el-button:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 /* 全局按钮样式优化 */
