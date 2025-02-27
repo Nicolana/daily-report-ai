@@ -16,6 +16,10 @@ export interface DailyReport {
 }
 
 export const dailyReportApi = {
+  get: async (id: string): Promise<DailyReport> => {
+    const response = await axios.get(`${API_BASE_URL}/daily-reports/${id}`)
+    return response.data
+  },
   create: async (data: CreateDailyReportDTO): Promise<DailyReport> => {
     const response = await axios.post(`${API_BASE_URL}/daily-reports/`, data)
     return response.data
