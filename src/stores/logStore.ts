@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { dailyReportApi, type DailyReport } from '../api/dailyReport'
+import { dailyReportService, type DailyReport } from '../api/dailyReport'
 import dayjs from '../utils/dayjs'
 
 interface LogState {
@@ -33,7 +33,7 @@ export const useLogStore = defineStore('log', {
       this.loading = true
       this.error = null
       try {
-        this.logs = await dailyReportApi.list(keyword, startDate, endDate)
+        this.logs = await dailyReportService.list({ keyword, start_date: startDate, end_date: endDate })
       } catch (error) {
         this.error = '获取日志列表失败'
         console.error('Failed to fetch logs:', error)
@@ -46,7 +46,7 @@ export const useLogStore = defineStore('log', {
       this.loading = true
       this.error = null
       try {
-        const newLog = await dailyReportApi.create({
+        const newLog = await dailyReportService.create({
           content,
           report_date: dayjs(date).toISOString()
         })
@@ -64,7 +64,7 @@ export const useLogStore = defineStore('log', {
       this.loading = true
       this.error = null
       try {
-        const updatedLog = await dailyReportApi.update(id, { content })
+        const updatedLog = await dailyReportService.update(id, { content })
         const index = this.logs.findIndex(log => log.id === id)
         if (index > -1) {
           this.logs[index] = updatedLog
@@ -82,7 +82,7 @@ export const useLogStore = defineStore('log', {
       this.loading = true
       this.error = null
       try {
-        await dailyReportApi.delete(id)
+        await dailyReportService.deleteReport(id)
         const index = this.logs.findIndex(log => log.id === id)
         if (index > -1) {
           this.logs.splice(index, 1)

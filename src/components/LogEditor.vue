@@ -73,7 +73,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { MdEditor, type ToolbarNames } from 'md-editor-v3'
 import { InfoFilled, Timer } from '@element-plus/icons-vue'
-import { dailyReportApi } from '../api/dailyReport'
+import { dailyReportService } from '../api/dailyReport'
 import dayjs from '../utils/dayjs'
 import 'md-editor-v3/lib/style.css'
 
@@ -138,12 +138,12 @@ const handleSave = async () => {
   saving.value = true
   try {
     if (isEdit.value) {
-      await dailyReportApi.update(props.id!, {
+      await dailyReportService.update(props.id!, {
         content: content.value,
         report_date: selectedDate.value
       })
     } else {
-      await dailyReportApi.create({
+      await dailyReportService.create({
         content: content.value,
         report_date: selectedDate.value
       })
@@ -165,7 +165,7 @@ onMounted(async () => {
   if (isEdit.value) {
     loading.value = true
     try {
-      const log = await dailyReportApi.get(props.id!)
+      const log = await dailyReportService.getReport(props.id!)
       content.value = log.content
       selectedDate.value = dayjs(log.report_date).format('YYYY-MM-DD')
     } catch (error) {

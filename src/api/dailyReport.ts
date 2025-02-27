@@ -1,11 +1,4 @@
-import axios from 'axios'
-
-const API_BASE_URL = '/api'
-
-export interface CreateDailyReportDTO {
-  content: string
-  report_date: string
-}
+import { BaseService } from './core/baseService'
 
 export interface DailyReport {
   id: string
@@ -15,41 +8,35 @@ export interface DailyReport {
   updated_at: string
 }
 
-export const dailyReportApi = {
-  get: async (id: string): Promise<DailyReport> => {
-    const response = await axios.get(`${API_BASE_URL}/daily-reports/${id}`)
-    return response.data
-  },
-  create: async (data: CreateDailyReportDTO): Promise<DailyReport> => {
-    const response = await axios.post(`${API_BASE_URL}/daily-reports/`, data)
-    return response.data
-  },
-  list: async (keyword?: string, startDate?: string, endDate?: string): Promise<DailyReport[]> => {
-    const params: Record<string, string> = {}
-    if (keyword) params.keyword = keyword
-    if (startDate) params.start_date = startDate
-    if (endDate) params.end_date = endDate
+export interface CreateDailyReportDTO {
+  content: string
+  report_date: string
+}
 
-    const response = await axios.get(`${API_BASE_URL}/daily-reports/`, {
-      params
-    })
-    return response.data
-  },
+export class DailyReportService extends BaseService {
+  async getReport(id: string): Promise<DailyReport> {
+    return this.get<DailyReport>(`/daily-reports/${id}`)
+  }
 
-  getByDateRange: async (startDate: string, endDate: string): Promise<DailyReport[]> => {
-    const response = await axios.get(`${API_BASE_URL}/daily-reports/`, {
-      params: { start_date: startDate, end_date: endDate }
-    })
-    return response.data
-  },
+  async create(data: CreateDailyReportDTO): Promise<DailyReport> {
+    return this.post<DailyReport>('/daily-reports/', data)
+  }
 
-  delete: async (id: string): Promise<DailyReport> => {
-    const response = await axios.delete(`${API_BASE_URL}/daily-reports/${id}`)
-    return response.data
-  },
+  async list(params?: {
+    keyword?: string
+    start_date?: string
+    end_date?: string
+  }): Promise<DailyReport[]> {
+    return this.get<DailyReport[]>('/daily-reports/', { params })
+  }
 
-  update: async (id: string, data: Partial<CreateDailyReportDTO>): Promise<DailyReport> => {
-    const response = await axios.put(`${API_BASE_URL}/daily-reports/${id}`, data)
-    return response.data
+  async update(id: string, data: Partial<CreateDailyReportDTO>): Promise<DailyReport> {
+    return this.put<DailyReport>(`/daily-reports/${id}`, data)
+  }
+
+  async deleteReport(id: string): Promise<void> {
+    return this.delete<void>(`/daily-reports/${id}`)
   }
 }
+
+export const dailyReportService = new DailyReportService()

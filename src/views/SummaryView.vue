@@ -43,7 +43,7 @@
                 <el-button 
                   type="primary" 
                   :loading="generatingWeekSummary"
-                  @click="generateWeekSummary"
+                  @click="showGenerateDialog('week')"
                 >
                   {{ generatingWeekSummary ? '生成中...' : '生成总结' }}
                 </el-button>
@@ -101,7 +101,7 @@
                 <el-button 
                   type="primary" 
                   :loading="generatingMonthSummary"
-                  @click="generateMonthSummary"
+                  @click="showGenerateDialog('month')"
                 >
                   {{ generatingMonthSummary ? '生成中...' : '生成总结' }}
                 </el-button>
@@ -117,22 +117,143 @@
         </el-card>
       </el-tab-pane>
     </el-tabs>
+
+    <!-- 生成总结对话框 -->
+    <el-dialog
+      v-model="generateDialogVisible"
+      :title="`生成${activeTab === 'week' ? '周' : '月'}总结`"
+      width="600px"
+    >
+      <div class="generate-form">
+        <!-- 时间范围选择 -->
+        <div class="form-item">
+          <div class="form-label">时间范围</div>
+          <el-date-picker
+            v-if="activeTab === 'week'"
+            v-model="generateForm.dateRange"
+            type="week"
+            format="YYYY年第ww周"
+            placeholder="选择周"
+            value-format="YYYY-MM-DD"
+          />
+          <el-date-picker
+            v-else
+            v-model="generateForm.dateRange"
+            type="month"
+            format="YYYY年MM月"
+            placeholder="选择月份"
+            value-format="YYYY-MM-DD"
+          />
+        </div>
+
+        <!-- 提示词输入 -->
+        <div class="form-item">
+          <div class="form-label">
+            提示词
+            <el-tooltip content="添加提示词可以帮助 AI 更好地理解您的需求" placement="top">
+              <el-icon class="help-icon"><QuestionFilled /></el-icon>
+            </el-tooltip>
+          </div>
+          <el-input
+            v-model="generateForm.prompt"
+            type="textarea"
+            :rows="3"
+            placeholder="例如：请着重关注项目进展和技术难点，以及解决方案"
+          />
+        </div>
+
+        <!-- 总结风格 -->
+        <div class="form-item">
+          <div class="form-label">总结风格</div>
+          <el-radio-group v-model="generateForm.style">
+            <el-radio-button label="concise">简洁</el-radio-button>
+            <el-radio-button label="detailed">详细</el-radio-button>
+            <el-radio-button label="technical">技术导向</el-radio-button>
+            <el-radio-button label="business">业务导向</el-radio-button>
+          </el-radio-group>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="generateDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="handleGenerate" :loading="generating">
+            开始生成
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
+
+    <!-- AI 对话框 -->
+    <el-dialog
+      v-model="chatDialogVisible"
+      title="AI 助手"
+      width="800px"
+      class="chat-dialog"
+    >
+      <div class="chat-container">
+        <div class="chat-messages" ref="chatMessagesRef">
+          <div 
+            v-for="(message, index) in chatMessages" 
+            :key="index"
+            :class="['message', message.role]"
+          >
+            <div class="message-content">
+              <MarkedVue :content="message.content" />
+            </div>
+          </div>
+        </div>
+        
+        <div class="chat-input">
+          <el-input
+            v-model="chatInput"
+            type="textarea"
+            :rows="3"
+            placeholder="输入您的反馈或建议..."
+            @keyup.enter.ctrl="handleSendMessage"
+          />
+          <div class="chat-actions">
+            <el-text class="tip-text" type="info">按 Ctrl + Enter 发送</el-text>
+            <el-button type="primary" @click="handleSendMessage" :loading="generating">
+              发送
+            </el-button>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
+import { QuestionFilled } from '@element-plus/icons-vue'
 import { useLogStore } from '../stores/logStore'
 import { renderMarkdown } from '../utils/markdown'
 import dayjs from '../utils/dayjs'
 import type { LogEntry } from '../types/log'
+import { summaryService, type GenerateSummaryParams, type ChatMessage } from '../api/summary'
 
 const store = useLogStore()
 const activeTab = ref('week')
 
 const selectedWeek = ref<string>('')
 const selectedMonth = ref<string>('')
+
+// 生成对话框相关状态
+const generateDialogVisible = ref(false)
+const generating = ref(false)
+const generateForm = ref({
+  dateRange: '',
+  prompt: '',
+  style: 'concise'
+})
+
+// AI 对话相关状态
+const chatDialogVisible = ref(false)
+const chatInput = ref('')
+const chatMessages = ref<Array<{role: 'user' | 'assistant', content: string}>>([])
+const chatMessagesRef = ref<HTMLElement>()
 
 // AI 总结内容
 const weekSummary = ref('')
@@ -196,49 +317,99 @@ const formatDateSimple = (dateStr: string) => {
   return dayjs(dateStr).format('YYYY年MM月DD日')
 }
 
-// AI 总结生成
-const generateWeekSummary = async () => {
-  if (weeklyLogs.value.length === 0) {
-    ElMessage.warning('没有找到本周的日志记录')
+// 显示生成对话框
+const showGenerateDialog = (type: 'week' | 'month') => {
+  generateForm.value.dateRange = type === 'week' ? selectedWeek.value : selectedMonth.value
+  generateForm.value.prompt = ''
+  generateForm.value.style = 'concise'
+  generateDialogVisible.value = true
+}
+
+// 处理生成总结
+const handleGenerate = async () => {
+  if (!generateForm.value.dateRange) {
+    ElMessage.warning('请选择时间范围')
     return
   }
 
-  generatingWeekSummary.value = true
+  generating.value = true
   try {
-    // TODO: 调用 AI API 生成总结
-    const summary = generateSummary(weeklyLogs.value, '周')
-    weekSummary.value = summary
-    ElMessage.success('周报总结已生成')
-  } catch (error) {
-    ElMessage.error('生成总结失败')
+    const params: GenerateSummaryParams = {
+      dateRange: generateForm.value.dateRange,
+      prompt: generateForm.value.prompt,
+      style: generateForm.value.style as 'concise' | 'detailed' | 'technical' | 'business'
+    }
+
+    const logs = activeTab.value === 'week' ? weeklyLogs.value : monthlyLogs.value
+    const { content: summary } = await summaryService.generateSummary(logs, params)
+
+    // 更新总结内容
+    if (activeTab.value === 'week') {
+      weekSummary.value = summary
+    } else {
+      monthSummary.value = summary
+    }
+
+    // 关闭生成对话框，打开聊天对话框
+    generateDialogVisible.value = false
+    chatDialogVisible.value = true
+    
+    // 初始化聊天消息
+    chatMessages.value = [
+      { role: 'assistant', content: '我已经生成了总结，您觉得怎么样？如果需要调整，请告诉我您的想法。' },
+      { role: 'assistant', content: summary }
+    ]
+  } catch (error: any) {
+    ElMessage.error(error.response?.data?.message || '生成总结失败')
   } finally {
-    generatingWeekSummary.value = false
+    generating.value = false
   }
 }
 
-const generateMonthSummary = async () => {
-  if (monthlyLogs.value.length === 0) {
-    ElMessage.warning('没有找到本月的日志记录')
-    return
+// 处理发送消息
+const handleSendMessage = async () => {
+  if (!chatInput.value.trim()) return
+
+  // 添加用户消息
+  chatMessages.value.push({
+    role: 'user',
+    content: chatInput.value
+  })
+
+  const userMessage = chatInput.value
+  chatInput.value = ''
+
+  // 滚动到底部
+  await nextTick()
+  if (chatMessagesRef.value) {
+    chatMessagesRef.value.scrollTop = chatMessagesRef.value.scrollHeight
   }
 
-  generatingMonthSummary.value = true
+  generating.value = true
   try {
-    // TODO: 调用 AI API 生成总结
-    const summary = generateSummary(monthlyLogs.value, '月')
-    monthSummary.value = summary
-    ElMessage.success('月报总结已生成')
-  } catch (error) {
-    ElMessage.error('生成总结失败')
-  } finally {
-    generatingMonthSummary.value = false
-  }
-}
+    const { content: response } = await summaryService.improveSummary({
+      originalSummary: activeTab.value === 'week' ? weekSummary.value : monthSummary.value,
+      feedback: userMessage,
+      type: activeTab.value as 'week' | 'month'
+    })
 
-// 临时的总结生成函数（后续替换为 AI API）
-const generateSummary = (logs: LogEntry[], type: '周' | '月') => {
-  const tasks = logs.map(log => log.content).join('\n\n')
-  return `# ${type}报总结\n\n## 工作内容\n\n${tasks}\n\n## 主要成果\n\n1. 完成了预定任务\n2. 解决了若干问题\n\n## 下${type}计划\n\n1. 继续推进项目进度\n2. 优化现有功能`
+    // 添加 AI 回复
+    chatMessages.value.push({
+      role: 'assistant',
+      content: response
+    })
+
+    // 更新总结内容
+    if (activeTab.value === 'week') {
+      weekSummary.value = response
+    } else {
+      monthSummary.value = response
+    }
+  } catch (error: any) {
+    ElMessage.error(error.response?.data?.message || '获取回复失败')
+  } finally {
+    generating.value = false
+  }
 }
 
 // 复制功能
@@ -322,5 +493,97 @@ h3 {
 
 :deep(.markdown-body) {
   background: none;
+}
+
+/* 生成对话框样式 */
+.generate-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.form-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.form-label {
+  font-weight: 500;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.help-icon {
+  color: var(--text-secondary);
+  font-size: 16px;
+  cursor: help;
+}
+
+/* 聊天对话框样式 */
+.chat-dialog :deep(.el-dialog__body) {
+  padding: 0;
+}
+
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 600px;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.message {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  max-width: 80%;
+}
+
+.message.user {
+  align-self: flex-end;
+}
+
+.message.assistant {
+  align-self: flex-start;
+}
+
+.message-content {
+  background: var(--bg-tertiary);
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.message.user .message-content {
+  background: var(--primary-color);
+  color: white;
+}
+
+.chat-input {
+  border-top: 1px solid var(--border-color);
+  padding: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.chat-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tip-text {
+  font-size: 12px;
 }
 </style> 
