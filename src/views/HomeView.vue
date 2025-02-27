@@ -307,12 +307,13 @@ const deleteLog = async (log: DailyReport) => {
   display: flex;
   align-items: center;
   gap: var(--spacing-lg);
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-sm);
 }
 
 .stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
 }
 
 .stat-icon {
@@ -367,6 +368,7 @@ const deleteLog = async (log: DailyReport) => {
   background: var(--bg-secondary);
   border-radius: var(--border-radius-lg);
   padding: var(--spacing-xl);
+  box-shadow: var(--shadow-sm);
 }
 
 .section-header {
@@ -406,12 +408,14 @@ const deleteLog = async (log: DailyReport) => {
   background: var(--bg-tertiary);
   border-radius: var(--border-radius-md);
   padding: var(--spacing-lg);
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-xs);
+  border: 1px solid var(--border-color);
 }
 
 .log-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-sm);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
 }
 
 .log-header {
@@ -461,12 +465,13 @@ const deleteLog = async (log: DailyReport) => {
   border-radius: var(--border-radius-lg);
   padding: var(--spacing-xl);
   height: 100%;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-sm);
 }
 
 .summary-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
 }
 
 .card-header {
@@ -518,29 +523,39 @@ const deleteLog = async (log: DailyReport) => {
   color: var(--text-secondary);
 }
 
-/* 响应式调整 */
+/* 响应式布局优化 */
 @media (max-width: 1200px) {
+  .home {
+    padding: 0 var(--spacing-lg);
+  }
+  
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
   }
 }
 
 @media (max-width: 768px) {
+  .home {
+    padding: 0 var(--spacing-md);
+  }
+  
   .stats-grid {
     grid-template-columns: 1fr;
   }
   
   .logs-grid {
     grid-template-columns: 1fr;
+    gap: var(--spacing-md);
   }
   
-  .summary-section .el-row {
-    margin: 0 !important;
+  .stat-card {
+    padding: var(--spacing-md);
   }
   
-  .summary-section .el-col {
-    padding: 0 !important;
-    margin-bottom: var(--spacing-lg);
+  .overview-section,
+  .summary-card {
+    padding: var(--spacing-lg);
   }
 }
 </style> 
