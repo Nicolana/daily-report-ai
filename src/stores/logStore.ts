@@ -1,68 +1,98 @@
 import { defineStore } from 'pinia'
-
-interface LogEntry {
-  id: string
-  date: string
-  content: string
-  createdAt: string
-  updatedAt: string
-}
+import { dailyReportApi, type DailyReport } from '../api/dailyReport'
 
 interface LogState {
-  logs: LogEntry[]
+  logs: DailyReport[]
+  loading: boolean
+  error: string | null
 }
-
-const STORAGE_KEY = 'daily-report-logs'
 
 export const useLogStore = defineStore('log', {
   state: (): LogState => ({
-    logs: JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+    logs: [],
+    loading: false,
+    error: null
   }),
   
   getters: {
     getLogsByDate: (state) => (date: string) => {
-      return state.logs.filter((log: LogEntry) => log.date === date)
+      return state.logs.filter((log) => log.report_date.startsWith(date))
     },
     
     getLogsByDateRange: (state) => (startDate: string, endDate: string) => {
-      return state.logs.filter((log: LogEntry) => {
-        return log.date >= startDate && log.date <= endDate
+      return state.logs.filter((log) => {
+        const reportDate = log.report_date.split('T')[0]
+        return reportDate >= startDate && reportDate <= endDate
       })
     }
   },
   
   actions: {
-    addLog(content: string, date: string) {
-      const newLog: LogEntry = {
-        id: Date.now().toString(),
-        date,
-        content,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
-      this.logs.push(newLog)
-      this.saveToLocalStorage()
-    },
-    
-    updateLog(id: string, content: string) {
-      const log = this.logs.find((l: LogEntry) => l.id === id)
-      if (log) {
-        log.content = content
-        log.updatedAt = new Date().toISOString()
-        this.saveToLocalStorage()
-      }
-    },
-    
-    deleteLog(id: string) {
-      const index = this.logs.findIndex((l: LogEntry) => l.id === id)
-      if (index > -1) {
-        this.logs.splice(index, 1)
-        this.saveToLocalStorage()
+    async fetchLogs() {
+      this.loading = true
+      this.error = null
+      try {
+        this.logs = await dailyReportApi.list()
+      } catch (error) {
+        this.error = '获取日志列表失败'
+        console.error('Failed to fetch logs:', error)
+      } finally {
+        this.loading = false
       }
     },
 
-    saveToLocalStorage() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.logs))
+    async addLog(content: string, date: string) {
+      this.loading = true
+      this.error = null
+      try {
+        const newLog = await dailyReportApi.create({
+          content,
+          report_date: new Date(date).toISOString()
+        })
+        this.logs.push(newLog)
+      } catch (error) {
+        this.error = '添加日志失败'
+        console.error('Failed to add log:', error)
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+    
+    async updateLog(id: string, content: string) {
+      this.loading = true
+      this.error = null
+      try {
+        const updatedLog = await dailyReportApi.update(id, { content })
+        const index = this.logs.findIndex(log => log.id === id)
+        if (index > -1) {
+          this.logs[index] = updatedLog
+        }
+      } catch (error) {
+        this.error = '更新日志失败'
+        console.error('Failed to update log:', error)
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+    
+    async deleteLog(id: string) {
+      this.loading = true
+      this.error = null
+      try {
+        await dailyReportApi.delete(id)
+        const index = this.logs.findIndex(log => log.id === id)
+        if (index > -1) {
+          this.logs.splice(index, 1)
+        }
+      } catch (error) {
+        this.error = '删除日志失败'
+        console.error('Failed to delete log:', error)
+        throw error
+      } finally {
+        this.loading = false
+      }
     }
   }
 }) 

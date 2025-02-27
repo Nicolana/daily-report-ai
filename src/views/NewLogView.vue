@@ -1,6 +1,6 @@
 <template>
   <div class="new-log">
-    <el-card>
+    <el-card v-loading="store.loading">
       <template #header>
         <div class="card-header">
           <span>写日报</span>
@@ -68,15 +68,19 @@ const disableFutureDates = (date: Date) => {
   return date > new Date()
 }
 
-const handleSave = () => {
+const handleSave = async () => {
   if (!content.value.trim()) {
     ElMessage.warning('请输入日报内容')
     return
   }
 
-  store.addLog(content.value, selectedDate.value)
-  ElMessage.success('保存成功')
-  router.push('/')
+  try {
+    await store.addLog(content.value, selectedDate.value)
+    ElMessage.success('保存成功')
+    router.push('/')
+  } catch (error) {
+    ElMessage.error(store.error || '保存失败')
+  }
 }
 </script>
 
