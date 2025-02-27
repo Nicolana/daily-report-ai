@@ -5,15 +5,17 @@
         <el-card>
           <template #header>
             <div class="card-header">
-              <span>周总结</span>
-              <el-date-picker
-                v-model="selectedWeek"
-                type="week"
-                format="YYYY年第ww周"
-                placeholder="选择周"
-                value-format="YYYY-MM-DD"
-                @change="handleWeekChange"
-              />
+              <div class="header-left">
+                <h3 class="card-title">周总结</h3>
+                <el-date-picker
+                  v-model="selectedWeek"
+                  type="week"
+                  format="YYYY年第ww周"
+                  placeholder="选择周"
+                  value-format="YYYY-MM-DD"
+                  @change="handleWeekChange"
+                />
+              </div>
             </div>
           </template>
 
@@ -34,26 +36,34 @@
             </div>
 
             <div class="ai-summary">
-              <h3>AI 总结</h3>
+              <div class="summary-header">
+                <h3>AI 总结</h3>
+                <div class="summary-actions" v-if="weekSummary">
+                  <el-button 
+                    text 
+                    type="primary" 
+                    @click="handleEdit('week')"
+                  >
+                    <el-icon><EditPen /></el-icon>编辑
+                  </el-button>
+                  <el-button 
+                    text 
+                    type="info" 
+                    @click="copyWeekSummary"
+                  >
+                    <el-icon><CopyDocument /></el-icon>复制
+                  </el-button>
+                </div>
+              </div>
+              
               <div class="summary-preview" v-if="weekSummary">
                 <MarkedVue :content="weekSummary" />
               </div>
-              <el-empty v-else description="点击生成按钮开始总结" />
-              <div class="summary-actions">
-                <el-button 
-                  type="primary" 
-                  :loading="generatingWeekSummary"
-                  @click="showGenerateDialog('week')"
-                >
-                  {{ generatingWeekSummary ? '生成中...' : '生成总结' }}
+              <el-empty v-else description="点击生成按钮开始总结">
+                <el-button type="primary" @click="showGenerateDialog('week')">
+                  生成总结
                 </el-button>
-                <el-button 
-                  :disabled="!weekSummary"
-                  @click="copyWeekSummary"
-                >
-                  复制总结
-                </el-button>
-              </div>
+              </el-empty>
             </div>
           </div>
         </el-card>
@@ -85,7 +95,7 @@
                   :timestamp="formatDateSimple(log.report_date)"
                   placement="top"
                 >
-                  <MarkedVue :content="log.content" />
+                  <MarkdownRender :content="log.content" />
                 </el-timeline-item>
               </el-timeline>
               <el-empty v-else description="暂无日志" />
@@ -94,7 +104,7 @@
             <div class="ai-summary">
               <h3>AI 总结</h3>
               <div class="summary-preview" v-if="monthSummary">
-                <MarkedVue :content="monthSummary" />
+                <MarkdownRender :content="monthSummary" />
               </div>
               <el-empty v-else description="点击生成按钮开始总结" />
               <div class="summary-actions">
@@ -184,6 +194,42 @@
       </template>
     </el-dialog>
 
+    <!-- 编辑总结对话框 -->
+    <el-dialog
+      v-model="editDialogVisible"
+      :title="`编辑${activeTab === 'week' ? '周' : '月'}总结`"
+      width="800px"
+      class="edit-dialog"
+    >
+      <div class="edit-container">
+        <MdEditor
+          v-model="editingContent"
+          :preview="isPreview"
+          @onSave="handleSaveEdit"
+          :noMermaid="true"
+          :toolbars="toolbars"
+          class="md-editor"
+        />
+        <div class="edit-actions">
+          <div class="action-left">
+            <el-tooltip content="预览模式" placement="top">
+              <el-switch v-model="isPreview" />
+            </el-tooltip>
+          </div>
+          <div class="action-right">
+            <el-button @click="editDialogVisible = false">取消</el-button>
+            <el-button 
+              type="primary" 
+              @click="handleSaveEdit"
+              :loading="saving"
+            >
+              保存
+            </el-button>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
+
     <!-- AI 对话框 -->
     <el-dialog
       v-model="chatDialogVisible"
@@ -199,7 +245,7 @@
             :class="['message', message.role]"
           >
             <div class="message-content">
-              <MarkedVue :content="message.content" />
+              <MarkdownRender :content="message.content" />
             </div>
           </div>
         </div>
@@ -227,12 +273,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
-import { QuestionFilled } from '@element-plus/icons-vue'
+import { QuestionFilled, EditPen, CopyDocument } from '@element-plus/icons-vue'
+import { MdEditor, type ToolbarNames } from 'md-editor-v3'
 import { useLogStore } from '../stores/logStore'
-import { renderMarkdown } from '../utils/markdown'
 import dayjs from '../utils/dayjs'
-import type { LogEntry } from '../types/log'
-import { summaryService, type GenerateSummaryParams, type ChatMessage } from '../api/summary'
+import { summaryService, type GenerateSummaryParams } from '../api/summary'
+import 'md-editor-v3/lib/style.css'
+import MarkdownRender from '../components/MarkdownRender.vue'
 
 const store = useLogStore()
 const activeTab = ref('week')
@@ -262,6 +309,34 @@ const monthSummary = ref('')
 // 生成状态
 const generatingWeekSummary = ref(false)
 const generatingMonthSummary = ref(false)
+
+// 编辑相关状态
+const editDialogVisible = ref(false)
+const editingContent = ref('')
+const isPreview = ref(false)
+const saving = ref(false)
+
+const toolbars: ToolbarNames[] = [
+  'bold',
+  'underline',
+  'italic',
+  'strikeThrough',
+  '-',
+  'title',
+  'sub',
+  'sup',
+  '-',
+  'quote',
+  'unorderedList',
+  'orderedList',
+  '-',
+  'codeRow',
+  'code',
+  'link',
+  'table',
+  '-',
+  'fullscreen'
+]
 
 onMounted(async () => {
   await store.fetchLogs()
@@ -319,7 +394,11 @@ const formatDateSimple = (dateStr: string) => {
 
 // 显示生成对话框
 const showGenerateDialog = (type: 'week' | 'month') => {
-  generateForm.value.dateRange = type === 'week' ? selectedWeek.value : selectedMonth.value
+  if (type === 'week') {
+    generateForm.value.dateRange = selectedWeek.value
+  } else {
+    generateForm.value.dateRange = selectedMonth.value
+  }
   generateForm.value.prompt = ''
   generateForm.value.style = 'concise'
   generateDialogVisible.value = true
@@ -334,14 +413,26 @@ const handleGenerate = async () => {
 
   generating.value = true
   try {
+    let startDate: string
+    let endDate: string
+
+    if (activeTab.value === 'week') {
+      startDate = dayjs(generateForm.value.dateRange).startOf('week').format('YYYY-MM-DD')
+      endDate = dayjs(generateForm.value.dateRange).endOf('week').format('YYYY-MM-DD')
+    } else {
+      startDate = dayjs(generateForm.value.dateRange).startOf('month').format('YYYY-MM-DD')
+      endDate = dayjs(generateForm.value.dateRange).endOf('month').format('YYYY-MM-DD')
+    }
+
     const params: GenerateSummaryParams = {
-      dateRange: generateForm.value.dateRange,
-      prompt: generateForm.value.prompt,
+      start_date: startDate,
+      end_date: endDate,
+      summary_type: activeTab.value === 'week' ? 'weekly' : 'monthly',
+      custom_prompt: generateForm.value.prompt,
       style: generateForm.value.style as 'concise' | 'detailed' | 'technical' | 'business'
     }
 
-    const logs = activeTab.value === 'week' ? weeklyLogs.value : monthlyLogs.value
-    const { content: summary } = await summaryService.generateSummary(logs, params)
+    const { content: summary } = await summaryService.generateSummary(params)
 
     // 更新总结内容
     if (activeTab.value === 'week') {
@@ -428,6 +519,42 @@ const copyMonthSummary = async () => {
     ElMessage.success('已复制到剪贴板')
   } catch (err) {
     ElMessage.error('复制失败')
+  }
+}
+
+// 处理编辑
+const handleEdit = (type: 'week' | 'month') => {
+  editingContent.value = type === 'week' ? weekSummary.value : monthSummary.value
+  editDialogVisible.value = true
+}
+
+// 保存编辑
+const handleSaveEdit = async () => {
+  if (!editingContent.value.trim()) {
+    ElMessage.warning('总结内容不能为空')
+    return
+  }
+
+  saving.value = true
+  try {
+    const response = await summaryService.saveSummary({
+      content: editingContent.value,
+      type: activeTab.value,
+      dateRange: activeTab.value === 'week' ? selectedWeek.value : selectedMonth.value
+    })
+
+    if (activeTab.value === 'week') {
+      weekSummary.value = response.content
+    } else {
+      monthSummary.value = response.content
+    }
+
+    editDialogVisible.value = false
+    ElMessage.success('保存成功')
+  } catch (error) {
+    console.error('保存失败:', error)
+  } finally {
+    saving.value = false
   }
 }
 </script>
@@ -585,5 +712,65 @@ h3 {
 
 .tip-text {
   font-size: 12px;
+}
+
+/* 编辑对话框样式 */
+.edit-dialog :deep(.el-dialog__body) {
+  padding: 0;
+}
+
+.edit-container {
+  display: flex;
+  flex-direction: column;
+  height: 600px;
+}
+
+.md-editor {
+  flex: 1;
+  border: none !important;
+}
+
+:deep(.md-editor-toolbar) {
+  background-color: var(--bg-secondary) !important;
+  border-bottom: 1px solid var(--border-color) !important;
+}
+
+:deep(.md-editor-content) {
+  background-color: var(--bg-secondary) !important;
+}
+
+.edit-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md);
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.action-left,
+.action-right {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+}
+
+/* 总结预览区域样式 */
+.summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.summary-actions {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.summary-preview {
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-lg);
 }
 </style> 
