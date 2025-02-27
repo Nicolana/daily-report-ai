@@ -43,8 +43,9 @@ export const dailyReportApi = {
     return response.data
   },
 
-  delete: async (id: string): Promise<void> => {
-    await axios.delete(`${API_BASE_URL}/daily-reports/${id}`)
+  delete: async (id: string): Promise<DailyReport> => {
+    const response = await axios.delete(`${API_BASE_URL}/daily-reports/${id}`)
+    return response.data
   },
 
   update: async (id: string, data: Partial<CreateDailyReportDTO>): Promise<DailyReport> => {
