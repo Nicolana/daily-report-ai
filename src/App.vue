@@ -56,8 +56,8 @@ const pageTitle = computed(() => {
           </el-menu>
           
           <div class="sidebar-footer">
-            <el-button type="primary" @click="$router.push('/new')">
-              <el-icon :icon="Plus"></el-icon>写日报
+            <el-button type="primary" @click="$router.push('/new')" :icon="Plus">
+              写日报
             </el-button>
           </div>
         </el-aside>

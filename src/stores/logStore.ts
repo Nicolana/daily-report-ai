@@ -29,11 +29,11 @@ export const useLogStore = defineStore('log', {
   },
   
   actions: {
-    async fetchLogs(keyword?: string) {
+    async fetchLogs(keyword?: string, startDate?: string, endDate?: string) {
       this.loading = true
       this.error = null
       try {
-        this.logs = await dailyReportApi.list(keyword)
+        this.logs = await dailyReportApi.list(keyword, startDate, endDate)
       } catch (error) {
         this.error = '获取日志列表失败'
         console.error('Failed to fetch logs:', error)

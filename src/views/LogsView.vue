@@ -1,106 +1,131 @@
 <template>
   <div class="logs-view" v-loading="store.loading">
     <!-- 搜索和筛选区域 -->
-    <div class="filter-section">
-      <div class="filter-left">
+    <div class="filter-container">
+      <div class="filter-row">
         <el-input
           v-model="searchKeyword"
           placeholder="搜索日志内容..."
           class="search-input"
+          :prefix-icon="Search"
           clearable
-        >
-          <template #prefix>
-            <el-icon><Search /></el-icon>
-          </template>
-        </el-input>
-      </div>
-      
-      <div class="filter-right">
+        />
+        <el-radio-group v-model="groupBy" class="group-selector">
+          <el-radio-button label="week">周</el-radio-button>
+          <el-radio-button label="month">月</el-radio-button>
+        </el-radio-group>
         <el-date-picker
           v-model="dateRange"
           type="daterange"
-          range-separator="至"
+          range-separator="-"
           start-placeholder="开始日期"
           end-placeholder="结束日期"
-          format="YYYY年MM月DD日"
+          format="YYYY/MM/DD"
           value-format="YYYY-MM-DD"
           :shortcuts="dateShortcuts"
           class="date-picker"
+          size="default"
         />
       </div>
     </div>
 
     <!-- 日志列表 -->
     <div class="logs-section">
-      <el-timeline v-if="filteredLogs.length > 0">
-        <el-timeline-item
-          v-for="log in filteredLogs"
-          :key="log.id"
-          :timestamp="formatDateSimple(log.report_date)"
-          placement="top"
-          :type="getTimelineItemType(log.report_date)"
-        >
-          <div class="log-card">
-            <div class="log-header">
-              <div class="log-date">
-                <el-tag size="small" :type="getTagType(log.report_date)">
-                  {{ getDayOfWeek(log.report_date) }}
-                </el-tag>
-                <span class="date-text">{{ formatDateSimple(log.report_date) }}</span>
-              </div>
-              <div class="log-actions">
-                <el-tooltip content="编辑" placement="top">
-                  <el-button
-                    link
-                    type="primary"
-                    @click="handleEdit(log)"
-                  >
-                    <el-icon><EditPen /></el-icon>
-                  </el-button>
-                </el-tooltip>
-                <el-tooltip content="复制" placement="top">
-                  <el-button
-                    link
-                    type="info"
-                    @click="handleCopy(log)"
-                  >
-                    <el-icon><CopyDocument /></el-icon>
-                  </el-button>
-                </el-tooltip>
-                <el-tooltip content="删除" placement="top">
-                  <el-button
-                    link
-                    type="danger"
-                    @click="handleDelete(log)"
-                  >
-                    <el-icon><Delete /></el-icon>
-                  </el-button>
-                </el-tooltip>
-              </div>
-            </div>
-            <div class="log-content markdown-body" v-html="renderMarkdown(log.content)" />
-            <div class="log-footer">
-              <div class="log-meta">
-                <el-text type="info" size="small">
-                  创建于 {{ formatTime(log.created_at) }}
-                </el-text>
-                <el-divider direction="vertical" />
-                <el-text type="info" size="small">
-                  更新于 {{ formatTime(log.updated_at) }}
-                </el-text>
-              </div>
-            </div>
+      <template v-if="Object.keys(groupedLogs).length > 0">
+        <div v-for="(logs, groupKey) in groupedLogs" :key="groupKey" class="log-group">
+          <div class="group-header">
+            <h3>{{ groupKey }}</h3>
           </div>
-        </el-timeline-item>
-      </el-timeline>
+          
+          <el-timeline>
+            <el-timeline-item
+              v-for="log in logs"
+              :key="log.id"
+              :timestamp="formatDateSimple(log.report_date)"
+              placement="top"
+              :type="getTimelineItemType(log.report_date)"
+            >
+              <div class="log-card">
+                <div class="log-header">
+                  <div class="log-date">
+                    <el-tag size="small" :type="getTagType(log.report_date)">
+                      {{ getDayOfWeek(log.report_date) }}
+                    </el-tag>
+                    <span class="date-text">{{ formatDateSimple(log.report_date) }}</span>
+                  </div>
+                  <div class="log-actions">
+                    <el-tooltip content="编辑" placement="top">
+                      <el-button
+                        link
+                        type="primary"
+                        @click="handleEdit(log)"
+                      >
+                        <el-icon><EditPen /></el-icon>
+                      </el-button>
+                    </el-tooltip>
+                    <el-tooltip content="复制" placement="top">
+                      <el-button
+                        link
+                        type="info"
+                        @click="handleCopy(log)"
+                      >
+                        <el-icon><CopyDocument /></el-icon>
+                      </el-button>
+                    </el-tooltip>
+                    <el-tooltip content="删除" placement="top">
+                      <el-button
+                        link
+                        type="danger"
+                        @click="handleDelete(log)"
+                      >
+                        <el-icon><Delete /></el-icon>
+                      </el-button>
+                    </el-tooltip>
+                  </div>
+                </div>
+                <div class="log-content markdown-body" v-html="renderMarkdown(log.content)" />
+                <div class="log-footer">
+                  <div class="log-meta">
+                    <el-text type="info" size="small">
+                      创建于 {{ formatTime(log.created_at) }}
+                    </el-text>
+                    <template v-if="log.updated_at">
+                      <el-divider direction="vertical" />
+                      <el-text type="info" size="small">
+                        更新于 {{ formatTime(log.updated_at) }}
+                      </el-text>
+                    </template>
+                  </div>
+                </div>
+              </div>
+            </el-timeline-item>
+          </el-timeline>
+        </div>
+      </template>
 
       <el-empty
         v-else
-        description="暂无日志"
+        :description="missingDates.length > 0 ? '咦，有日报还没写完哦！' : '这段时间还没有日志呢'"
       >
+        <template #image>
+          <img src="../assets/empty-state.svg" class="empty-image" />
+        </template>
         <template #extra>
+          <template v-if="missingDates.length > 0">
+            <p class="missing-dates-hint">
+              还需要补充以下日期的日报：
+              <el-tag 
+                v-for="date in missingDates" 
+                :key="date"
+                size="small"
+                class="missing-date-tag"
+              >
+                {{ formatDateSimple(date) }}
+              </el-tag>
+            </p>
+          </template>
           <el-button type="primary" @click="$router.push('/new')">
-            立即写日报
+            {{ missingDates.length > 0 ? '去补写日报' : '立即写日报' }}
           </el-button>
         </template>
       </el-empty>
@@ -112,7 +137,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
-import { Search, EditPen, CopyDocument, Delete } from '@element-plus/icons-vue'
+import { Search, EditPen, CopyDocument, Delete, Calendar } from '@element-plus/icons-vue'
 import { useLogStore } from '../stores/logStore'
 import { formatDateSimple } from '../utils/dayjs'
 import { renderMarkdown } from '../utils/markdown'
@@ -122,8 +147,12 @@ import type { DailyReport } from '../api/dailyReport'
 const router = useRouter()
 const store = useLogStore()
 
-const dateRange = ref<[string, string]>(['', ''])
+const dateRange = ref<[string, string]>([
+  dayjs().startOf('week').format('YYYY-MM-DD'),
+  dayjs().endOf('week').format('YYYY-MM-DD')
+])
 const searchKeyword = ref('')
+const groupBy = ref<'week' | 'month'>('week')
 
 // 日期快捷选项
 const dateShortcuts = [
@@ -175,6 +204,46 @@ const filteredLogs = computed(() => {
   }
   
   return logs
+})
+
+// 分组后的日志
+const groupedLogs = computed(() => {
+  const logs = filteredLogs.value
+  const groups: { [key: string]: DailyReport[] } = {}
+  
+  logs.forEach(log => {
+    const date = dayjs(log.report_date)
+    const key = groupBy.value === 'week' 
+      ? `${date.year()}年第${date.week()}周`
+      : date.format('YYYY年MM月')
+    
+    if (!groups[key]) {
+      groups[key] = []
+    }
+    groups[key].push(log)
+  })
+  
+  return groups
+})
+
+// 获取本周未填写的日期
+const missingDates = computed(() => {
+  if (!dateRange.value[0] || !dateRange.value[1]) return []
+  
+  const start = dayjs(dateRange.value[0])
+  const end = dayjs(dateRange.value[1])
+  const existingDates = new Set(filteredLogs.value.map(log => log.report_date))
+  const missing: string[] = []
+  
+  let current = start
+  while (current.isSameOrBefore(end)) {
+    if (!existingDates.has(current.format('YYYY-MM-DD'))) {
+      missing.push(current.format('YYYY-MM-DD'))
+    }
+    current = current.add(1, 'day')
+  }
+  
+  return missing
 })
 
 // 获取星期几
@@ -249,23 +318,26 @@ const handleDelete = async (log: DailyReport) => {
 }
 
 /* 搜索和筛选区域 */
-.filter-section {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--spacing-lg);
-  margin-bottom: var(--spacing-xl);
+.filter-container {
+  margin-bottom: var(--spacing-md);
 }
 
-.filter-left {
-  flex: 1;
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
 }
 
 .search-input {
-  max-width: 300px;
+  width: 240px;
+}
+
+.group-selector {
+  margin: 0 var(--spacing-xs);
 }
 
 .date-picker {
-  width: 360px;
+  width: 260px;
 }
 
 /* 日志列表区域 */
@@ -372,14 +444,48 @@ const handleDelete = async (log: DailyReport) => {
 
 /* 响应式调整 */
 @media (max-width: 768px) {
-  .filter-section {
-    flex-direction: column;
+  .filter-row {
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
   }
   
-  .search-input,
+  .search-input {
+    width: 100%;
+  }
+  
   .date-picker {
     width: 100%;
-    max-width: none;
   }
+}
+
+.log-group {
+  margin-bottom: var(--spacing-xl);
+}
+
+.group-header {
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 2px solid var(--border-color);
+}
+
+.group-header h3 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.empty-image {
+  width: 200px;
+  height: 200px;
+}
+
+.missing-dates-hint {
+  margin-bottom: var(--spacing-md);
+  color: var(--text-secondary);
+}
+
+.missing-date-tag {
+  margin: 0 var(--spacing-xs);
 }
 </style> 

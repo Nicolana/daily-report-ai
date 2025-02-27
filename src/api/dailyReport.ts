@@ -20,10 +20,14 @@ export const dailyReportApi = {
     const response = await axios.post(`${API_BASE_URL}/daily-reports/`, data)
     return response.data
   },
+  list: async (keyword?: string, startDate?: string, endDate?: string): Promise<DailyReport[]> => {
+    const params: Record<string, string> = {}
+    if (keyword) params.keyword = keyword
+    if (startDate) params.start_date = startDate
+    if (endDate) params.end_date = endDate
 
-  list: async (keyword?: string): Promise<DailyReport[]> => {
     const response = await axios.get(`${API_BASE_URL}/daily-reports/`, {
-      params: keyword ? { keyword } : undefined
+      params
     })
     return response.data
   },
