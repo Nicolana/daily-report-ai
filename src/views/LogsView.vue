@@ -87,7 +87,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
@@ -106,24 +106,13 @@ onMounted(async () => {
 const dateRange = ref<[string, string]>(['', ''])
 const searchKeyword = ref('')
 
+// 监听搜索关键词变化
+watch(searchKeyword, async (newValue) => {
+  await store.fetchLogs(newValue)
+})
+
 const filteredLogs = computed(() => {
-  let logs = store.logs
-
-  if (dateRange.value && dateRange.value.length === 2) {
-    const [start, end] = dateRange.value
-    logs = store.getLogsByDateRange(start, end)
-  }
-
-  if (searchKeyword.value) {
-    const keyword = searchKeyword.value.toLowerCase()
-    logs = logs.filter(log => 
-      log.content.toLowerCase().includes(keyword)
-    )
-  }
-
-  return logs.sort((a, b) => 
-    new Date(b.report_date).getTime() - new Date(a.report_date).getTime()
-  )
+  return store.logs
 })
 
 const handleEdit = (log: DailyReport) => {

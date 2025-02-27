@@ -21,8 +21,10 @@ export const dailyReportApi = {
     return response.data
   },
 
-  list: async (): Promise<DailyReport[]> => {
-    const response = await axios.get(`${API_BASE_URL}/daily-reports/`)
+  list: async (keyword?: string): Promise<DailyReport[]> => {
+    const response = await axios.get(`${API_BASE_URL}/daily-reports/`, {
+      params: keyword ? { keyword } : undefined
+    })
     return response.data
   },
 
