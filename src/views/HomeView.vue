@@ -1,7 +1,7 @@
 <template>
   <div class="home">
     <!-- 顶部统计卡片 -->
-    <el-row :gutter="20" class="mb-4">
+    <el-row :gutter="20" class="mb-4" v-loading="store.loading">
       <el-col :span="8">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-content">
@@ -80,7 +80,7 @@
               <div class="log-header">
                 <h3>
                   <el-icon><Calendar /></el-icon>
-                  {{ formatDate(log.date) }}
+                  {{ formatDate(log.report_date) }}
                 </h3>
                 <el-dropdown>
                   <el-button link>
@@ -97,7 +97,7 @@
                   </template>
                 </el-dropdown>
               </div>
-              <div class="log-content markdown-preview" v-html="renderMarkdown(log.content)" />
+              <div class="log-content markdown-body" v-html="renderMarkdown(log.content)" />
             </div>
           </div>
         </el-card>
@@ -164,48 +164,44 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useLogStore } from '../stores/logStore'
-import { format, getWeek, getDay } from 'date-fns'
-import zhCN from 'date-fns/locale/zh-CN'
 import { Calendar, Finished, Timer, Plus, More, ArrowRight } from '@element-plus/icons-vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
-import MarkdownIt from 'markdown-it'
+import { renderMarkdown } from '../utils/markdown'
+import {
+  formatDate,
+  getCurrentWeek,
+  getCurrentMonth,
+  getDaysUntilWeekend,
+  getWeekRange
+} from '../utils/dayjs'
+import type { DailyReport } from '../api/dailyReport'
+import { useRouter } from 'vue-router'
 
-const md = new MarkdownIt()
 const store = useLogStore()
+const router = useRouter()
 
-// 获取本周的日志
-const weeklyLogs = computed(() => {
-  const now = new Date()
-  const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()))
-  const endOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 6))
-  
-  return store.getLogsByDateRange(
-    startOfWeek.toISOString().split('T')[0],
-    endOfWeek.toISOString().split('T')[0]
-  )
+onMounted(async () => {
+  await store.fetchLogs()
 })
 
-// 计算统计数据
-const currentWeek = computed(() => getWeek(new Date()))
-const currentMonth = computed(() => new Date().getMonth() + 1)
+const weeklyLogs = computed(() => {
+  const { start, end } = getWeekRange()
+  return store.getLogsByDateRange(start, end)
+})
+
+const currentWeek = computed(() => getCurrentWeek())
+const currentMonth = computed(() => getCurrentMonth())
 const completionRate = computed(() => {
-  const workDays = 5 // 假设一周工作5天
+  const workDays = 5
   const completedDays = weeklyLogs.value.length
   return Math.round((completedDays / workDays) * 100)
 })
-const daysUntilWeekend = computed(() => {
-  const today = getDay(new Date())
-  return today === 0 || today === 6 ? 0 : 6 - today
-})
+const daysUntilWeekend = computed(() => getDaysUntilWeekend())
 
-const formatDate = (dateStr: string) => {
-  return format(new Date(dateStr), 'yyyy年MM月dd日 EEEE', { locale: zhCN })
-}
-
-const renderMarkdown = (content: string) => {
-  return md.render(content)
+const handleEdit = (log: DailyReport) => {
+  router.push(`/edit/${log.id}`)
 }
 
 // 日志操作方法
@@ -374,28 +370,28 @@ const deleteLog = (log: any) => {
 }
 
 /* Markdown 预览样式 */
-.markdown-preview {
+.markdown-body {
+  font-size: 14px;
   line-height: 1.6;
 }
 
-.markdown-preview :deep(h1),
-.markdown-preview :deep(h2),
-.markdown-preview :deep(h3) {
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3 {
   margin-top: 24px;
   margin-bottom: 16px;
   font-weight: 600;
   line-height: 1.25;
 }
 
-.markdown-preview :deep(p) {
+.markdown-body p {
   margin-top: 0;
   margin-bottom: 16px;
 }
 
-.markdown-preview :deep(ul),
-.markdown-preview :deep(ol) {
+.markdown-body ul,
+.markdown-body ol {
   padding-left: 2em;
-  margin-top: 0;
   margin-bottom: 16px;
 }
 

@@ -39,11 +39,12 @@ import { ElMessage } from 'element-plus'
 import { useLogStore } from '../stores/logStore'
 import { MdEditor, type ToolbarNames } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
+import dayjs from '../utils/dayjs'
 
 const router = useRouter()
 const store = useLogStore()
 
-const selectedDate = ref(new Date().toISOString().split('T')[0])
+const selectedDate = ref(dayjs().format('YYYY-MM-DD'))
 const content = ref('')
 
 const toolbars = [
@@ -65,7 +66,7 @@ const toolbars = [
 ] as Array<ToolbarNames>
 
 const disableFutureDates = (date: Date) => {
-  return date > new Date()
+  return dayjs(date).isAfter(dayjs())
 }
 
 const handleSave = async () => {

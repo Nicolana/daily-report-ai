@@ -121,17 +121,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useLogStore } from '../stores/logStore'
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns'
-import MarkedVue from 'marked-vue'
+import { renderMarkdown } from '../utils/markdown'
+import dayjs from '../utils/dayjs'
 import type { LogEntry } from '../types/log'
 
 const store = useLogStore()
 const activeTab = ref('week')
 
-// 日期选择
 const selectedWeek = ref<string>('')
 const selectedMonth = ref<string>('')
 
@@ -143,31 +142,33 @@ const monthSummary = ref('')
 const generatingWeekSummary = ref(false)
 const generatingMonthSummary = ref(false)
 
-// 周报日志
+onMounted(async () => {
+  await store.fetchLogs()
+  // 默认选择本周
+  selectedWeek.value = dayjs().format('YYYY-MM-DD')
+})
+
 const weeklyLogs = computed(() => {
   if (!selectedWeek.value) return []
   
-  const date = new Date(selectedWeek.value)
-  const start = startOfWeek(date, { weekStartsOn: 1 })
-  const end = endOfWeek(date, { weekStartsOn: 1 })
+  const start = dayjs(selectedWeek.value).startOf('week').add(1, 'day')
+  const end = dayjs(selectedWeek.value).endOf('week').add(1, 'day')
   
   return store.getLogsByDateRange(
-    format(start, 'yyyy-MM-dd'),
-    format(end, 'yyyy-MM-dd')
+    start.format('YYYY-MM-DD'),
+    end.format('YYYY-MM-DD')
   )
 })
 
-// 月报日志
 const monthlyLogs = computed(() => {
   if (!selectedMonth.value) return []
   
-  const date = new Date(selectedMonth.value)
-  const start = startOfMonth(date)
-  const end = endOfMonth(date)
+  const start = dayjs(selectedMonth.value).startOf('month')
+  const end = dayjs(selectedMonth.value).endOf('month')
   
   return store.getLogsByDateRange(
-    format(start, 'yyyy-MM-dd'),
-    format(end, 'yyyy-MM-dd')
+    start.format('YYYY-MM-DD'),
+    end.format('YYYY-MM-DD')
   )
 })
 
@@ -188,7 +189,7 @@ const handleMonthChange = (date: string | null) => {
 
 // 格式化日期
 const formatDate = (dateStr: string) => {
-  return format(new Date(dateStr), 'yyyy年MM月dd日')
+  return dayjs(dateStr).format('YYYY年MM月DD日')
 }
 
 // AI 总结生成

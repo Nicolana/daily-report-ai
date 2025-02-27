@@ -1,6 +1,6 @@
 <template>
   <div class="logs">
-    <el-card>
+    <el-card v-loading="store.loading">
       <template #header>
         <div class="card-header">
           <span>日志列表</span>
@@ -13,6 +13,26 @@
               end-placeholder="结束日期"
               format="YYYY年MM月DD日"
               value-format="YYYY-MM-DD"
+              :shortcuts="[
+                {
+                  text: '本周',
+                  value: () => {
+                    const end = new Date()
+                    const start = new Date()
+                    start.setTime(start.getTime() - 3600 * 1000 * 24 * 7)
+                    return [start, end]
+                  },
+                },
+                {
+                  text: '本月',
+                  value: () => {
+                    const end = new Date()
+                    const start = new Date()
+                    start.setTime(start.getTime() - 3600 * 1000 * 24 * 30)
+                    return [start, end]
+                  },
+                }
+              ]"
             />
             <el-input
               v-model="searchKeyword"
@@ -31,12 +51,12 @@
         <el-timeline-item
           v-for="log in filteredLogs"
           :key="log.id"
-          :timestamp="formatDate(log.date)"
+          :timestamp="formatDateSimple(log.report_date)"
           placement="top"
         >
           <el-card>
             <div class="log-content">
-              <div class="log-text">{{ log.content }}</div>
+              <div class="log-text markdown-body" v-html="renderMarkdown(log.content)" />
               <div class="log-actions">
                 <el-button
                   type="primary"
@@ -67,18 +87,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import { useLogStore } from '../stores/logStore'
-import { format } from 'date-fns'
-import type { LogEntry } from '../types/log'
+import { formatDateSimple } from '../utils/dayjs'
+import { renderMarkdown } from '../utils/markdown'
+import type { DailyReport } from '../api/dailyReport'
 
 const router = useRouter()
 const store = useLogStore()
 
-const dateRange = ref<string[]>([])
+onMounted(async () => {
+  await store.fetchLogs()
+})
+
+const dateRange = ref<[string, string]>(['', ''])
 const searchKeyword = ref('')
 
 const filteredLogs = computed(() => {
@@ -86,7 +111,7 @@ const filteredLogs = computed(() => {
 
   if (dateRange.value && dateRange.value.length === 2) {
     const [start, end] = dateRange.value
-    logs = logs.filter(log => log.date >= start && log.date <= end)
+    logs = store.getLogsByDateRange(start, end)
   }
 
   if (searchKeyword.value) {
@@ -96,19 +121,17 @@ const filteredLogs = computed(() => {
     )
   }
 
-  return logs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  return logs.sort((a, b) => 
+    new Date(b.report_date).getTime() - new Date(a.report_date).getTime()
+  )
 })
 
-const formatDate = (dateStr: string) => {
-  return format(new Date(dateStr), 'yyyy年MM月dd日')
-}
-
-const handleEdit = (log: LogEntry) => {
+const handleEdit = (log: DailyReport) => {
   // TODO: 实现编辑功能
   router.push(`/edit/${log.id}`)
 }
 
-const handleDelete = async (log: LogEntry) => {
+const handleDelete = async (log: DailyReport) => {
   try {
     await ElMessageBox.confirm(
       '确定要删除这条日志吗？',
@@ -119,10 +142,12 @@ const handleDelete = async (log: LogEntry) => {
         type: 'warning',
       }
     )
-    store.deleteLog(log.id)
+    await store.deleteLog(log.id)
     ElMessage.success('删除成功')
-  } catch {
-    // 用户取消删除
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error(store.error || '删除失败')
+    }
   }
 }
 </script>
@@ -162,5 +187,30 @@ const handleDelete = async (log: LogEntry) => {
 .log-actions {
   display: flex;
   gap: 8px;
+}
+
+:deep(.markdown-body) {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+:deep(.markdown-body h1),
+:deep(.markdown-body h2),
+:deep(.markdown-body h3) {
+  margin-top: 24px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+:deep(.markdown-body p) {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+:deep(.markdown-body ul),
+:deep(.markdown-body ol) {
+  padding-left: 2em;
+  margin-bottom: 16px;
 }
 </style> 
