@@ -1,23 +1,42 @@
 <template>
-  <div class="markdown-body" v-html="renderedContent" />
+  <MdEditor
+    :modelValue="content"
+    :preview="true"
+    :previewOnly="true"
+    :noMermaid="true"
+    :readOnly="true"
+    class="markdown-render"
+  />
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { renderMarkdown } from '../utils/markdown'
-import 'highlight.js/styles/atom-one-light.css'
-import 'github-markdown-css/github-markdown-light.css'
+import { MdEditor } from 'md-editor-v3'
+import 'md-editor-v3/lib/style.css'
 
-const props = defineProps<{
+defineProps<{
   content: string
 }>()
-
-const renderedContent = computed(() => {
-  return renderMarkdown(props.content)
-})
 </script>
 
 <style scoped>
+.markdown-render {
+  border: none !important;
+}
+
+:deep(.md-editor) {
+  background: none !important;
+}
+
+:deep(.md-editor-preview) {
+  padding: 0 !important;
+  background: none !important;
+}
+
+/* 隐藏预览模式的工具栏 */
+:deep(.md-editor-toolbar) {
+  display: none !important;
+}
+
 :deep(.markdown-body) {
   background: none;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
