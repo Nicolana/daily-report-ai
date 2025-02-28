@@ -4,6 +4,7 @@ import NewLogView from '../views/NewLogView.vue'
 import EditLogView from '../views/EditLogView.vue'
 import LogsView from '../views/LogsView.vue'
 import SummaryView from '../views/SummaryView.vue'
+import GenerateSummaryView from '../views/GenerateSummaryView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -32,6 +33,11 @@ const router = createRouter({
       path: '/summary',
       name: 'summary',
       component: SummaryView
+    },
+    {
+      path: '/summary/generate/:type',
+      name: 'generate-summary',
+      component: GenerateSummaryView
     }
   ]
 })

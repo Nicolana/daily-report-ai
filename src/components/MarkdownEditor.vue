@@ -14,7 +14,7 @@
           </el-tooltip>
         </div>
       </div>
-      
+
       <div class="editor-container">
         <MdEditor
           :modelValue="modelValue"
@@ -126,6 +126,8 @@ const toolbars: ToolbarNames[] = [
 }
 :deep(.md-editor-icon) {
   font-size: 20px !important;
+  width: 20px !important;
+  height: 20px !important;
 }
 
 </style>

@@ -60,7 +60,10 @@
                 <MarkdownRender :content="weekSummary" />
               </div>
               <el-empty v-else description="点击生成按钮开始总结">
-                <el-button type="primary" @click="showGenerateDialog('week')">
+                <el-button 
+                  type="primary" 
+                  @click="$router.push(`/summary/generate/${activeTab}`)"
+                >
                   生成总结
                 </el-button>
               </el-empty>
@@ -111,7 +114,7 @@
                 <el-button 
                   type="primary" 
                   :loading="generatingMonthSummary"
-                  @click="showGenerateDialog('month')"
+                  @click="$router.push(`/summary/generate/${activeTab}`)"
                 >
                   {{ generatingMonthSummary ? '生成中...' : '生成总结' }}
                 </el-button>
@@ -127,69 +130,6 @@
         </el-card>
       </el-tab-pane>
     </el-tabs>
-
-    <!-- 生成总结对话框 -->
-    <el-dialog
-      v-model="generateDialogVisible"
-      :title="`生成${activeTab === 'week' ? '周' : '月'}总结`"
-      width="800px"
-    >
-      <!-- 预览区域 -->
-      <div class="preview-section">
-        <div v-if="previewSummary" class="summary-preview">
-          <MarkdownEditor v-model="previewSummary" />
-        </div>
-        <el-empty v-else description="预览区域" />
-      </div>
-
-      <template #footer>
-        <div class="dialog-footer">
-          <!-- 提示词输入 -->
-          <el-input
-            v-model="generateForm.prompt"
-            type="textarea"
-            :rows="3"
-            placeholder="输入提示词，帮助 AI 更好地理解您的需求"
-          />
-          
-          <div class="footer-actions">
-            <!-- 时间范围选择 -->
-            <div class="date-picker">
-              <el-date-picker
-                v-if="activeTab === 'week'"
-                v-model="generateForm.dateRange"
-                type="week"
-                format="YYYY年第ww周"
-                placeholder="选择周"
-                value-format="YYYY-MM-DD"
-              />
-              <el-date-picker
-                v-else
-                v-model="generateForm.dateRange"
-                type="month"
-                format="YYYY年MM月"
-                placeholder="选择月份"
-                value-format="YYYY-MM-DD"
-              />
-            </div>
-
-            <!-- 按钮组 -->
-            <div class="button-group">
-              <el-button @click="generateDialogVisible = false">取消</el-button>
-              <el-button type="primary" @click="handleGenerate" :loading="generating">
-                {{ generating ? '生成中...' : '重新生成' }}
-              </el-button>
-              <el-button 
-                @click="handleSaveSummary" 
-                :disabled="!previewSummary || !previewSummary.trim()"
-              >
-                保存
-              </el-button>
-            </div>
-          </div>
-        </div>
-      </template>
-    </el-dialog>
 
     <!-- 编辑总结对话框 -->
     <el-dialog
@@ -230,16 +170,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { QuestionFilled, EditPen, CopyDocument } from '@element-plus/icons-vue'
+import { EditPen, CopyDocument } from '@element-plus/icons-vue'
 import { MdEditor, type ToolbarNames } from 'md-editor-v3'
 import { useLogStore } from '../stores/logStore'
 import dayjs from '../utils/dayjs'
 import { summaryService, type GenerateSummaryParams } from '../api/summary'
 import 'md-editor-v3/lib/style.css'
 import MarkdownRender from '../components/MarkdownRender.vue'
-import MarkdownEditor from '../components/MarkdownEditor.vue'
 
 const store = useLogStore()
 const activeTab = ref('week')
