@@ -134,77 +134,59 @@
       :title="`生成${activeTab === 'week' ? '周' : '月'}总结`"
       width="800px"
     >
-      <div class="generate-form">
-        <!-- 时间范围选择 -->
-        <div class="form-item">
-          <div class="form-label">时间范围</div>
-          <el-date-picker
-            v-if="activeTab === 'week'"
-            v-model="generateForm.dateRange"
-            type="week"
-            format="YYYY年第ww周"
-            placeholder="选择周"
-            value-format="YYYY-MM-DD"
-          />
-          <el-date-picker
-            v-else
-            v-model="generateForm.dateRange"
-            type="month"
-            format="YYYY年MM月"
-            placeholder="选择月份"
-            value-format="YYYY-MM-DD"
-          />
+      <!-- 预览区域 -->
+      <div class="preview-section">
+        <div v-if="previewSummary" class="summary-preview">
+          <MarkdownEditor v-model="previewSummary" />
         </div>
-
-        <!-- 提示词输入 -->
-        <div class="form-item">
-          <div class="form-label">
-            提示词
-            <el-tooltip content="添加提示词可以帮助 AI 更好地理解您的需求" placement="top">
-              <el-icon class="help-icon"><QuestionFilled /></el-icon>
-            </el-tooltip>
-          </div>
-          <el-input
-            v-model="generateForm.prompt"
-            type="textarea"
-            :rows="3"
-            placeholder="例如：请着重关注项目进展和技术难点，以及解决方案"
-          />
-        </div>
-
-        <!-- 总结风格 -->
-        <div class="form-item">
-          <div class="form-label">总结风格</div>
-          <el-radio-group v-model="generateForm.style">
-            <el-radio-button label="concise">简洁</el-radio-button>
-            <el-radio-button label="detailed">详细</el-radio-button>
-            <el-radio-button label="technical">技术导向</el-radio-button>
-            <el-radio-button label="business">业务导向</el-radio-button>
-          </el-radio-group>
-        </div>
-        
-        <!-- 预览区域 -->
-        <div class="form-item preview-section" v-if="previewSummary">
-          <div class="form-label">预览</div>
-          <div class="summary-preview">
-            <MarkdownEditor v-model="previewSummary" />
-          </div>
-        </div>
+        <el-empty v-else description="预览区域" />
       </div>
 
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="generateDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="handleGenerate" :loading="generating">
-            {{ previewSummary ? '重新生成' : '生成总结' }}
-          </el-button>
-          <el-button 
-            type="success" 
-            @click="handleSaveSummary" 
-            :disabled="!previewSummary"
-          >
-            保存总结
-          </el-button>
+          <!-- 提示词输入 -->
+          <el-input
+            v-model="generateForm.prompt"
+            type="textarea"
+            :rows="3"
+            placeholder="输入提示词，帮助 AI 更好地理解您的需求"
+          />
+          
+          <div class="footer-actions">
+            <!-- 时间范围选择 -->
+            <div class="date-picker">
+              <el-date-picker
+                v-if="activeTab === 'week'"
+                v-model="generateForm.dateRange"
+                type="week"
+                format="YYYY年第ww周"
+                placeholder="选择周"
+                value-format="YYYY-MM-DD"
+              />
+              <el-date-picker
+                v-else
+                v-model="generateForm.dateRange"
+                type="month"
+                format="YYYY年MM月"
+                placeholder="选择月份"
+                value-format="YYYY-MM-DD"
+              />
+            </div>
+
+            <!-- 按钮组 -->
+            <div class="button-group">
+              <el-button @click="generateDialogVisible = false">取消</el-button>
+              <el-button type="primary" @click="handleGenerate" :loading="generating">
+                {{ generating ? '生成中...' : '重新生成' }}
+              </el-button>
+              <el-button 
+                @click="handleSaveSummary" 
+                :disabled="!previewSummary || !previewSummary.trim()"
+              >
+                保存
+              </el-button>
+            </div>
+          </div>
         </div>
       </template>
     </el-dialog>
@@ -367,6 +349,20 @@ const formatDateSimple = (dateStr: string) => {
   return dayjs(dateStr).format('YYYY年MM月DD日')
 }
 
+// 显示生成对话框
+const showGenerateDialog = async (type: 'week' | 'month') => {
+  if (type === 'week') {
+    generateForm.value.dateRange = selectedWeek.value
+  } else {
+    generateForm.value.dateRange = selectedMonth.value
+  }
+  generateForm.value.prompt = ''
+  generateDialogVisible.value = true
+  
+  // 自动调用生成接口
+  await handleGenerate()
+}
+
 // 处理生成总结
 const handleGenerate = async () => {
   if (!generateForm.value.dateRange) {
@@ -416,19 +412,6 @@ const handleSaveSummary = () => {
   
   generateDialogVisible.value = false
   ElMessage.success('总结已保存')
-}
-
-// 显示生成对话框
-const showGenerateDialog = (type: 'week' | 'month') => {
-  if (type === 'week') {
-    generateForm.value.dateRange = selectedWeek.value
-  } else {
-    generateForm.value.dateRange = selectedMonth.value
-  }
-  generateForm.value.prompt = ''
-  generateForm.value.style = 'concise'
-  previewSummary.value = '' // 清空预览内容
-  generateDialogVisible.value = true
 }
 
 // 复制功能
@@ -554,7 +537,32 @@ h3 {
 .generate-form {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-lg);
+  height: 60vh;
+  position: relative;
+}
+
+.summary-preview {
+  height: 100%;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+}
+
+.fixed-bottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: white;
+  padding: 16px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.date-picker {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .form-item {
@@ -643,5 +651,30 @@ h3 {
 .summary-actions {
   display: flex;
   gap: var(--spacing-xs);
+}
+
+.summary-preview {
+  height: 100%;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+}
+
+.dialog-footer {
+  width: 100%;
+}
+
+.dialog-footer :deep(.el-textarea) {
+  margin-bottom: 12px;
+}
+
+.footer-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.button-group {
+  display: flex;
+  gap: 12px;
 }
 </style> 
