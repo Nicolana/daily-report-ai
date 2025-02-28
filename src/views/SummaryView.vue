@@ -29,7 +29,7 @@
                   :timestamp="formatDateSimple(log.report_date)"
                   placement="top"
                 >
-                  <MarkedVue :content="log.content" />
+                  <MarkdownRender :content="log.content" />
                 </el-timeline-item>
               </el-timeline>
               <el-empty v-else description="暂无日志" />
@@ -57,7 +57,7 @@
               </div>
               
               <div class="summary-preview" v-if="weekSummary">
-                <MarkedVue :content="weekSummary" />
+                <MarkdownRender :content="weekSummary" />
               </div>
               <el-empty v-else description="点击生成按钮开始总结">
                 <el-button type="primary" @click="showGenerateDialog('week')">
@@ -132,7 +132,7 @@
     <el-dialog
       v-model="generateDialogVisible"
       :title="`生成${activeTab === 'week' ? '周' : '月'}总结`"
-      width="600px"
+      width="800px"
     >
       <div class="generate-form">
         <!-- 时间范围选择 -->
@@ -182,13 +182,28 @@
             <el-radio-button label="business">业务导向</el-radio-button>
           </el-radio-group>
         </div>
+        
+        <!-- 预览区域 -->
+        <div class="form-item preview-section" v-if="previewSummary">
+          <div class="form-label">预览</div>
+          <div class="summary-preview">
+            <MarkdownEditor v-model="previewSummary" />
+          </div>
+        </div>
       </div>
 
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="generateDialogVisible = false">取消</el-button>
           <el-button type="primary" @click="handleGenerate" :loading="generating">
-            开始生成
+            {{ previewSummary ? '重新生成' : '生成总结' }}
+          </el-button>
+          <el-button 
+            type="success" 
+            @click="handleSaveSummary" 
+            :disabled="!previewSummary"
+          >
+            保存总结
           </el-button>
         </div>
       </template>
@@ -229,44 +244,6 @@
         </div>
       </div>
     </el-dialog>
-
-    <!-- AI 对话框 -->
-    <el-dialog
-      v-model="chatDialogVisible"
-      title="AI 助手"
-      width="800px"
-      class="chat-dialog"
-    >
-      <div class="chat-container">
-        <div class="chat-messages" ref="chatMessagesRef">
-          <div 
-            v-for="(message, index) in chatMessages" 
-            :key="index"
-            :class="['message', message.role]"
-          >
-            <div class="message-content">
-              <MarkdownRender :content="message.content" />
-            </div>
-          </div>
-        </div>
-        
-        <div class="chat-input">
-          <el-input
-            v-model="chatInput"
-            type="textarea"
-            :rows="3"
-            placeholder="输入您的反馈或建议..."
-            @keyup.enter.ctrl="handleSendMessage"
-          />
-          <div class="chat-actions">
-            <el-text class="tip-text" type="info">按 Ctrl + Enter 发送</el-text>
-            <el-button type="primary" @click="handleSendMessage" :loading="generating">
-              发送
-            </el-button>
-          </div>
-        </div>
-      </div>
-    </el-dialog>
   </div>
 </template>
 
@@ -280,6 +257,7 @@ import dayjs from '../utils/dayjs'
 import { summaryService, type GenerateSummaryParams } from '../api/summary'
 import 'md-editor-v3/lib/style.css'
 import MarkdownRender from '../components/MarkdownRender.vue'
+import MarkdownEditor from '../components/MarkdownEditor.vue'
 
 const store = useLogStore()
 const activeTab = ref('week')
@@ -296,11 +274,8 @@ const generateForm = ref({
   style: 'concise'
 })
 
-// AI 对话相关状态
-const chatDialogVisible = ref(false)
-const chatInput = ref('')
-const chatMessages = ref<Array<{role: 'user' | 'assistant', content: string}>>([])
-const chatMessagesRef = ref<HTMLElement>()
+// 预览总结内容
+const previewSummary = ref('')
 
 // AI 总结内容
 const weekSummary = ref('')
@@ -392,18 +367,6 @@ const formatDateSimple = (dateStr: string) => {
   return dayjs(dateStr).format('YYYY年MM月DD日')
 }
 
-// 显示生成对话框
-const showGenerateDialog = (type: 'week' | 'month') => {
-  if (type === 'week') {
-    generateForm.value.dateRange = selectedWeek.value
-  } else {
-    generateForm.value.dateRange = selectedMonth.value
-  }
-  generateForm.value.prompt = ''
-  generateForm.value.style = 'concise'
-  generateDialogVisible.value = true
-}
-
 // 处理生成总结
 const handleGenerate = async () => {
   if (!generateForm.value.dateRange) {
@@ -434,22 +397,8 @@ const handleGenerate = async () => {
 
     const { content: summary } = await summaryService.generateSummary(params)
 
-    // 更新总结内容
-    if (activeTab.value === 'week') {
-      weekSummary.value = summary
-    } else {
-      monthSummary.value = summary
-    }
-
-    // 关闭生成对话框，打开聊天对话框
-    generateDialogVisible.value = false
-    chatDialogVisible.value = true
-    
-    // 初始化聊天消息
-    chatMessages.value = [
-      { role: 'assistant', content: '我已经生成了总结，您觉得怎么样？如果需要调整，请告诉我您的想法。' },
-      { role: 'assistant', content: summary }
-    ]
+    // 更新预览内容
+    previewSummary.value = summary
   } catch (error: any) {
     ElMessage.error(error.response?.data?.message || '生成总结失败')
   } finally {
@@ -457,50 +406,29 @@ const handleGenerate = async () => {
   }
 }
 
-// 处理发送消息
-const handleSendMessage = async () => {
-  if (!chatInput.value.trim()) return
-
-  // 添加用户消息
-  chatMessages.value.push({
-    role: 'user',
-    content: chatInput.value
-  })
-
-  const userMessage = chatInput.value
-  chatInput.value = ''
-
-  // 滚动到底部
-  await nextTick()
-  if (chatMessagesRef.value) {
-    chatMessagesRef.value.scrollTop = chatMessagesRef.value.scrollHeight
+// 保存预览的总结
+const handleSaveSummary = () => {
+  if (activeTab.value === 'week') {
+    weekSummary.value = previewSummary.value
+  } else {
+    monthSummary.value = previewSummary.value
   }
+  
+  generateDialogVisible.value = false
+  ElMessage.success('总结已保存')
+}
 
-  generating.value = true
-  try {
-    const { content: response } = await summaryService.improveSummary({
-      originalSummary: activeTab.value === 'week' ? weekSummary.value : monthSummary.value,
-      feedback: userMessage,
-      type: activeTab.value as 'week' | 'month'
-    })
-
-    // 添加 AI 回复
-    chatMessages.value.push({
-      role: 'assistant',
-      content: response
-    })
-
-    // 更新总结内容
-    if (activeTab.value === 'week') {
-      weekSummary.value = response
-    } else {
-      monthSummary.value = response
-    }
-  } catch (error: any) {
-    ElMessage.error(error.response?.data?.message || '获取回复失败')
-  } finally {
-    generating.value = false
+// 显示生成对话框
+const showGenerateDialog = (type: 'week' | 'month') => {
+  if (type === 'week') {
+    generateForm.value.dateRange = selectedWeek.value
+  } else {
+    generateForm.value.dateRange = selectedMonth.value
   }
+  generateForm.value.prompt = ''
+  generateForm.value.style = 'concise'
+  previewSummary.value = '' // 清空预览内容
+  generateDialogVisible.value = true
 }
 
 // 复制功能
@@ -649,69 +577,18 @@ h3 {
   cursor: help;
 }
 
-/* 聊天对话框样式 */
-.chat-dialog :deep(.el-dialog__body) {
-  padding: 0;
-}
-
-.chat-container {
-  display: flex;
-  flex-direction: column;
-  height: 600px;
-}
-
-.chat-messages {
-  flex: 1;
-  overflow-y: auto;
-  padding: var(--spacing-lg);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-lg);
-}
-
-.message {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-  max-width: 80%;
-}
-
-.message.user {
-  align-self: flex-end;
-}
-
-.message.assistant {
-  align-self: flex-start;
-}
-
-.message-content {
-  background: var(--bg-tertiary);
-  padding: var(--spacing-md);
-  border-radius: var(--border-radius-md);
-  box-shadow: var(--shadow-sm);
-}
-
-.message.user .message-content {
-  background: var(--primary-color);
-  color: white;
-}
-
-.chat-input {
+.preview-section {
+  margin-top: 16px;
   border-top: 1px solid var(--border-color);
-  padding: var(--spacing-lg);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
+  padding-top: 16px;
 }
 
-.chat-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.tip-text {
-  font-size: 12px;
+.summary-preview {
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  padding: 16px;
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 /* 编辑对话框样式 */
@@ -766,11 +643,5 @@ h3 {
 .summary-actions {
   display: flex;
   gap: var(--spacing-xs);
-}
-
-.summary-preview {
-  background: var(--bg-tertiary);
-  border-radius: var(--border-radius-md);
-  padding: var(--spacing-lg);
 }
 </style> 

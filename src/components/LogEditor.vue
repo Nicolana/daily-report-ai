@@ -21,31 +21,12 @@
     
     <!-- 编辑器区域 -->
     <div class="editor-section">
-      <div class="editor-wrapper">
-        <div class="editor-toolbar">
-          <div class="toolbar-left">
-            <el-tooltip content="支持 Markdown 语法" placement="top">
-              <el-icon class="toolbar-icon"><InfoFilled /></el-icon>
-            </el-tooltip>
-            <span class="toolbar-text">编辑器</span>
-          </div>
-          <div class="toolbar-right">
-            <el-tooltip content="预览模式" placement="top">
-              <el-switch v-model="isPreview" />
-            </el-tooltip>
-          </div>
-        </div>
-        
-        <div class="editor-container">
-          <MdEditor
-            v-model="content"
-            :preview="isPreview"
-            @onSave="handleSave"
-            :noMermaid="true"
-            :toolbars="toolbars"
-            class="md-editor"
-          />
-        </div>
+      <div class="editor-container">
+        <MarkdownEditor
+          v-model="content"
+          @save="handleSave"
+          class="md-editor"
+        />
       </div>
 
       <!-- 底部操作栏 -->
@@ -71,11 +52,11 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { MdEditor, type ToolbarNames } from 'md-editor-v3'
+import { type ToolbarNames } from 'md-editor-v3'
 import { InfoFilled, Timer } from '@element-plus/icons-vue'
 import { dailyReportService } from '../api/dailyReport'
 import dayjs from '../utils/dayjs'
-import 'md-editor-v3/lib/style.css'
+import MarkdownEditor from './MarkdownEditor.vue'
 
 const props = defineProps<{
   id?: string
@@ -251,22 +232,6 @@ onMounted(async () => {
   padding: var(--spacing-sm) var(--spacing-md);
   background-color: var(--bg-tertiary);
   border-bottom: 1px solid var(--border-color);
-}
-
-.toolbar-left {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-.toolbar-icon {
-  color: var(--primary-color);
-  font-size: 16px;
-}
-
-.toolbar-text {
-  color: var(--text-secondary);
-  font-size: 14px;
 }
 
 .editor-container {

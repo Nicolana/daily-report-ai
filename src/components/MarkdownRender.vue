@@ -1,5 +1,5 @@
 <template>
-  <MdEditor
+  <MdPreview
     :modelValue="content"
     :preview="true"
     :previewOnly="true"
@@ -10,8 +10,8 @@
 </template>
 
 <script setup lang="ts">
-import { MdEditor } from 'md-editor-v3'
-import 'md-editor-v3/lib/style.css'
+import { MdPreview } from 'md-editor-v3'
+import 'md-editor-v3/lib/preview.css';
 
 defineProps<{
   content: string
