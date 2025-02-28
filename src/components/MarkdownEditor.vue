@@ -124,4 +124,8 @@ const toolbars: ToolbarNames[] = [
 :deep(.md-editor-content) {
   background-color: var(--bg-secondary) !important;
 }
+:deep(.md-editor-icon) {
+  font-size: 20px !important;
+}
+
 </style>
