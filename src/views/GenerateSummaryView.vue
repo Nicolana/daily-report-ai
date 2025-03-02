@@ -149,12 +149,27 @@ const handleGenerate = async () => {
 
 // 保存总结
 const handleSave = async () => {
+  if (!dateRange.value || !previewContent.value) {
+    ElMessage.warning('请先生成总结内容')
+    return
+  }
+
   try {
+    const start = type.value === 'week'
+      ? dayjs(dateRange.value).startOf('week').format('YYYY-MM-DD')
+      : dayjs(dateRange.value).startOf('month').format('YYYY-MM-DD')
+
+    const end = type.value === 'week'
+      ? dayjs(dateRange.value).endOf('week').format('YYYY-MM-DD')
+      : dayjs(dateRange.value).endOf('month').format('YYYY-MM-DD')
+
     await summaryService.saveSummary({
       content: previewContent.value,
-      type: type.value,
-      dateRange: dateRange.value
+      summary_type: type.value === 'week' ? 'weekly' : 'monthly',
+      start_date: start,
+      end_date: end
     })
+
     ElMessage.success('保存成功')
     router.push('/summary')
   } catch (error: any) {

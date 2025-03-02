@@ -1,12 +1,18 @@
 import { BaseService } from './core/baseService'
 import type { DailyReport } from './dailyReport'
 
+export interface SummaryBase {
+  content: string
+  summary_type: 'weekly' | 'monthly'
+  start_date: string
+  end_date: string
+}
+
 export interface GenerateSummaryParams {
   start_date: string
   end_date: string
   custom_prompt?: string
   summary_type: 'weekly' | 'monthly'
-  // 暂时保留，不过还来不及完成这个功能
   style?: 'concise' | 'detailed' | 'technical' | 'business'
 }
 
@@ -59,8 +65,8 @@ export class SummaryService extends BaseService {
     })
   }
 
-  async saveSummary(params: EditSummaryParams): Promise<SummaryResponse> {
-    return this.post<SummaryResponse>('/summary/save', params)
+  async saveSummary(params: SummaryBase): Promise<SummaryResponse> {
+    return this.post<SummaryResponse>('/summaries', params)
   }
 }
 
