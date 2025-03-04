@@ -56,17 +56,23 @@ export class SummaryService extends BaseService {
   }
 
   async getHistorySummaries(
-    type: 'week' | 'month',
+    summary_type: 'weekly' | 'monthly',
     startDate: string,
     endDate: string
   ): Promise<SummaryResponse[]> {
-    return this.get<SummaryResponse[]>('/summary/history', {
-      params: { type, start_date: startDate, end_date: endDate }
+    return this.get<SummaryResponse[]>('/summaries', {
+      params: { summary_type, start_date: startDate, end_date: endDate }
     })
   }
 
   async saveSummary(params: SummaryBase): Promise<SummaryResponse> {
     return this.post<SummaryResponse>('/summaries', params)
+  }
+
+  async getCurrentSummary(summary_type: 'weekly' | 'monthly'): Promise<SummaryResponse> {
+    return this.get<SummaryResponse>('/summaries/current', {
+      params: { summary_type }
+    })
   }
 }
 

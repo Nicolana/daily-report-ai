@@ -1,8 +1,13 @@
 <template>
   <div class="summary">
-    <el-tabs v-model="activeTab">
+    <div class="summary-header-container">
+      <h1 class="main-title">工作总结</h1>
+      <p class="subtitle">查看和管理您的周期性工作总结</p>
+    </div>
+
+    <el-tabs v-model="activeTab" @tab-change="handleTabChange" class="custom-tabs">
       <el-tab-pane label="周总结" name="week">
-        <el-card>
+        <el-card class="summary-card" :body-style="{ padding: '0' }">
           <template #header>
             <div class="card-header">
               <div class="header-left">
@@ -14,57 +19,63 @@
                   placeholder="选择周"
                   value-format="YYYY-MM-DD"
                   @change="handleWeekChange"
+                  class="date-picker"
                 />
+              </div>
+              <div class="header-right" v-if="!weekSummary">
+                <el-button
+                  type="primary"
+                  @click="$router.push(`/summary/generate/${activeTab}`)"
+                >
+                  <el-icon><Plus /></el-icon>生成总结
+                </el-button>
               </div>
             </div>
           </template>
 
           <div class="summary-content">
-            <div class="logs-section">
-              <h3>本周日志</h3>
-              <el-timeline v-if="weeklyLogs.length > 0">
-                <el-timeline-item
-                  v-for="log in weeklyLogs"
-                  :key="log.id"
-                  :timestamp="formatDateSimple(log.report_date)"
-                  placement="top"
-                >
-                  <MarkdownRender :content="log.content" />
-                </el-timeline-item>
-              </el-timeline>
-              <el-empty v-else description="暂无日志" />
-            </div>
-
             <div class="ai-summary">
               <div class="summary-header">
-                <h3>AI 总结</h3>
+                <div class="summary-title">
+                  <el-icon><Document /></el-icon>
+                  <h3>AI 总结</h3>
+                </div>
                 <div class="summary-actions" v-if="weekSummary">
-                  <el-button 
-                    text 
-                    type="primary" 
+                  <el-button
+                    text
+                    type="primary"
                     @click="handleEdit('week')"
+                    class="action-button"
                   >
                     <el-icon><EditPen /></el-icon>编辑
                   </el-button>
-                  <el-button 
-                    text 
-                    type="info" 
+                  <el-button
+                    text
+                    type="info"
                     @click="copyWeekSummary"
+                    class="action-button"
                   >
                     <el-icon><CopyDocument /></el-icon>复制
                   </el-button>
                 </div>
               </div>
-              
+
               <div class="summary-preview" v-if="weekSummary">
                 <MarkdownRender :content="weekSummary" />
               </div>
-              <el-empty v-else description="点击生成按钮开始总结">
-                <el-button 
-                  type="primary" 
+              <el-empty v-else description="暂无总结内容" class="empty-state">
+                <template #image>
+                  <el-icon><DocumentAdd /></el-icon>
+                </template>
+                <template #description>
+                  <p class="empty-text">点击生成按钮开始创建周总结</p>
+                </template>
+                <el-button
+                  type="primary"
                   @click="$router.push(`/summary/generate/${activeTab}`)"
+                  class="generate-button"
                 >
-                  生成总结
+                  <el-icon><Plus /></el-icon>生成总结
                 </el-button>
               </el-empty>
             </div>
@@ -73,58 +84,77 @@
       </el-tab-pane>
 
       <el-tab-pane label="月总结" name="month">
-        <el-card>
+        <el-card class="summary-card" :body-style="{ padding: '0' }">
           <template #header>
             <div class="card-header">
-              <span>月总结</span>
-              <el-date-picker
-                v-model="selectedMonth"
-                type="month"
-                format="YYYY年MM月"
-                placeholder="选择月份"
-                value-format="YYYY-MM-DD"
-                @change="handleMonthChange"
-              />
+              <div class="header-left">
+                <h3 class="card-title">月总结</h3>
+                <el-date-picker
+                  v-model="selectedMonth"
+                  type="month"
+                  format="YYYY年MM月"
+                  placeholder="选择月份"
+                  value-format="YYYY-MM-DD"
+                  @change="handleMonthChange"
+                  class="date-picker"
+                />
+              </div>
+              <div class="header-right" v-if="!monthSummary">
+                <el-button
+                  type="primary"
+                  @click="$router.push(`/summary/generate/${activeTab}`)"
+                >
+                  <el-icon><Plus /></el-icon>生成总结
+                </el-button>
+              </div>
             </div>
           </template>
 
           <div class="summary-content">
-            <div class="logs-section">
-              <h3>本月日志</h3>
-              <el-timeline v-if="monthlyLogs.length > 0">
-                <el-timeline-item
-                  v-for="log in monthlyLogs"
-                  :key="log.id"
-                  :timestamp="formatDateSimple(log.report_date)"
-                  placement="top"
-                >
-                  <MarkdownRender :content="log.content" />
-                </el-timeline-item>
-              </el-timeline>
-              <el-empty v-else description="暂无日志" />
-            </div>
-
             <div class="ai-summary">
-              <h3>AI 总结</h3>
+              <div class="summary-header">
+                <div class="summary-title">
+                  <el-icon><Document /></el-icon>
+                  <h3>AI 总结</h3>
+                </div>
+                <div class="summary-actions" v-if="monthSummary">
+                  <el-button
+                    text
+                    type="primary"
+                    @click="handleEdit('month')"
+                    class="action-button"
+                  >
+                    <el-icon><EditPen /></el-icon>编辑
+                  </el-button>
+                  <el-button
+                    text
+                    type="info"
+                    @click="copyMonthSummary"
+                    class="action-button"
+                  >
+                    <el-icon><CopyDocument /></el-icon>复制
+                  </el-button>
+                </div>
+              </div>
+
               <div class="summary-preview" v-if="monthSummary">
                 <MarkdownRender :content="monthSummary" />
               </div>
-              <el-empty v-else description="点击生成按钮开始总结" />
-              <div class="summary-actions">
-                <el-button 
-                  type="primary" 
-                  :loading="generatingMonthSummary"
+              <el-empty v-else description="暂无总结内容" class="empty-state">
+                <template #image>
+                  <el-icon><DocumentAdd /></el-icon>
+                </template>
+                <template #description>
+                  <p class="empty-text">点击生成按钮开始创建月总结</p>
+                </template>
+                <el-button
+                  type="primary"
                   @click="$router.push(`/summary/generate/${activeTab}`)"
+                  class="generate-button"
                 >
-                  {{ generatingMonthSummary ? '生成中...' : '生成总结' }}
+                  <el-icon><Plus /></el-icon>生成总结
                 </el-button>
-                <el-button 
-                  :disabled="!monthSummary"
-                  @click="copyMonthSummary"
-                >
-                  复制总结
-                </el-button>
-              </div>
+              </el-empty>
             </div>
           </div>
         </el-card>
@@ -137,6 +167,7 @@
       :title="`编辑${activeTab === 'week' ? '周' : '月'}总结`"
       width="800px"
       class="edit-dialog"
+      destroy-on-close
     >
       <div class="edit-container">
         <MdEditor
@@ -155,8 +186,8 @@
           </div>
           <div class="action-right">
             <el-button @click="editDialogVisible = false">取消</el-button>
-            <el-button 
-              type="primary" 
+            <el-button
+              type="primary"
               @click="handleSaveEdit"
               :loading="saving"
             >
@@ -172,13 +203,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { EditPen, CopyDocument } from '@element-plus/icons-vue'
-import { MdEditor, type ToolbarNames } from 'md-editor-v3'
+import * as ElementPlusIconsVue from '@element-plus/icons-vue'
+import { MdEditor } from 'md-editor-v3'
+import 'md-editor-v3/lib/style.css'
+import MarkdownRender from '../components/MarkdownRender.vue'
 import { useLogStore } from '../stores/logStore'
 import dayjs from '../utils/dayjs'
 import { summaryService, type GenerateSummaryParams } from '../api/summary'
-import 'md-editor-v3/lib/style.css'
-import MarkdownRender from '../components/MarkdownRender.vue'
 
 const store = useLogStore()
 const activeTab = ref('week')
@@ -212,7 +243,8 @@ const editingContent = ref('')
 const isPreview = ref(false)
 const saving = ref(false)
 
-const toolbars: ToolbarNames[] = [
+// 定义工具栏
+const toolbars = [
   'bold',
   'underline',
   'italic',
@@ -234,18 +266,22 @@ const toolbars: ToolbarNames[] = [
   'fullscreen'
 ]
 
-onMounted(async () => {
-  await store.fetchLogs()
-  // 默认选择本周
-  selectedWeek.value = dayjs().format('YYYY-MM-DD')
+onMounted(() => {
+  // 加载日志数据
+  store.fetchLogs().then(() => {
+    // 默认选择本周
+    selectedWeek.value = dayjs().format('YYYY-MM-DD')
+    // 获取当前总结
+    fetchSummary('week')
+  })
 })
 
 const weeklyLogs = computed(() => {
   if (!selectedWeek.value) return []
-  
+
   const start = dayjs(selectedWeek.value).startOf('week').add(1, 'day')
   const end = dayjs(selectedWeek.value).endOf('week').add(1, 'day')
-  
+
   return store.getLogsByDateRange(
     start.format('YYYY-MM-DD'),
     end.format('YYYY-MM-DD')
@@ -254,28 +290,70 @@ const weeklyLogs = computed(() => {
 
 const monthlyLogs = computed(() => {
   if (!selectedMonth.value) return []
-  
+
   const start = dayjs(selectedMonth.value).startOf('month')
   const end = dayjs(selectedMonth.value).endOf('month')
-  
+
   return store.getLogsByDateRange(
     start.format('YYYY-MM-DD'),
     end.format('YYYY-MM-DD')
   )
 })
 
+// 添加获取总结的方法
+const fetchSummary = (type: 'week' | 'month') => {
+  try {
+    const summaryType = type === 'week' ? 'weekly' : 'monthly'
+    let startDate, endDate
+
+    if (type === 'week') {
+      startDate = dayjs(selectedWeek.value).startOf('week').format('YYYY-MM-DD')
+      endDate = dayjs(selectedWeek.value).endOf('week').format('YYYY-MM-DD')
+    } else {
+      startDate = dayjs(selectedMonth.value).startOf('month').format('YYYY-MM-DD')
+      endDate = dayjs(selectedMonth.value).endOf('month').format('YYYY-MM-DD')
+    }
+
+    return summaryService.getHistorySummaries(
+      summaryType,
+      startDate,
+      endDate
+    ).then(summaries => {
+      if (summaries && summaries.length > 0) {
+        if (type === 'week') {
+          weekSummary.value = summaries[0].content
+        } else {
+          monthSummary.value = summaries[0].content
+        }
+      } else {
+        if (type === 'week') {
+          weekSummary.value = ''
+        } else {
+          monthSummary.value = ''
+        }
+      }
+    }).catch(error => {
+      console.error('获取总结失败:', error)
+      ElMessage.error(error.response?.data?.message || '获取总结失败')
+    })
+  } catch (error: any) {
+    console.error('获取总结失败:', error)
+    ElMessage.error(error.response?.data?.message || '获取总结失败')
+  }
+}
+
 // 日期处理函数
 const handleWeekChange = (date: string | null) => {
   if (date) {
     selectedWeek.value = date
-    weekSummary.value = ''
+    fetchSummary('week')
   }
 }
 
 const handleMonthChange = (date: string | null) => {
   if (date) {
     selectedMonth.value = date
-    monthSummary.value = ''
+    fetchSummary('month')
   }
 }
 
@@ -289,7 +367,7 @@ const formatDateSimple = (dateStr: string) => {
 }
 
 // 显示生成对话框
-const showGenerateDialog = async (type: 'week' | 'month') => {
+const showGenerateDialog = (type: 'week' | 'month') => {
   if (type === 'week') {
     generateForm.value.dateRange = selectedWeek.value
   } else {
@@ -297,48 +375,50 @@ const showGenerateDialog = async (type: 'week' | 'month') => {
   }
   generateForm.value.prompt = ''
   generateDialogVisible.value = true
-  
+
   // 自动调用生成接口
-  await handleGenerate()
+  handleGenerate()
 }
 
 // 处理生成总结
-const handleGenerate = async () => {
+const handleGenerate = () => {
   if (!generateForm.value.dateRange) {
     ElMessage.warning('请选择时间范围')
     return
   }
 
   generating.value = true
-  try {
-    let startDate: string
-    let endDate: string
 
-    if (activeTab.value === 'week') {
-      startDate = dayjs(generateForm.value.dateRange).startOf('week').format('YYYY-MM-DD')
-      endDate = dayjs(generateForm.value.dateRange).endOf('week').format('YYYY-MM-DD')
-    } else {
-      startDate = dayjs(generateForm.value.dateRange).startOf('month').format('YYYY-MM-DD')
-      endDate = dayjs(generateForm.value.dateRange).endOf('month').format('YYYY-MM-DD')
-    }
+  let startDate: string
+  let endDate: string
 
-    const params: GenerateSummaryParams = {
-      start_date: startDate,
-      end_date: endDate,
-      summary_type: activeTab.value === 'week' ? 'weekly' : 'monthly',
-      custom_prompt: generateForm.value.prompt,
-      style: generateForm.value.style as 'concise' | 'detailed' | 'technical' | 'business'
-    }
-
-    const { content: summary } = await summaryService.generateSummary(params)
-
-    // 更新预览内容
-    previewSummary.value = summary
-  } catch (error: any) {
-    ElMessage.error(error.response?.data?.message || '生成总结失败')
-  } finally {
-    generating.value = false
+  if (activeTab.value === 'week') {
+    startDate = dayjs(generateForm.value.dateRange).startOf('week').format('YYYY-MM-DD')
+    endDate = dayjs(generateForm.value.dateRange).endOf('week').format('YYYY-MM-DD')
+  } else {
+    startDate = dayjs(generateForm.value.dateRange).startOf('month').format('YYYY-MM-DD')
+    endDate = dayjs(generateForm.value.dateRange).endOf('month').format('YYYY-MM-DD')
   }
+
+  const params: GenerateSummaryParams = {
+    start_date: startDate,
+    end_date: endDate,
+    summary_type: activeTab.value === 'week' ? 'weekly' : 'monthly',
+    custom_prompt: generateForm.value.prompt,
+    style: generateForm.value.style as 'concise' | 'detailed' | 'technical' | 'business'
+  }
+
+  summaryService.generateSummary(params)
+    .then(({ content: summary }) => {
+      // 更新预览内容
+      previewSummary.value = summary
+    })
+    .catch((error: any) => {
+      ElMessage.error(error.response?.data?.message || '生成总结失败')
+    })
+    .finally(() => {
+      generating.value = false
+    })
 }
 
 // 保存预览的总结
@@ -348,28 +428,22 @@ const handleSaveSummary = () => {
   } else {
     monthSummary.value = previewSummary.value
   }
-  
+
   generateDialogVisible.value = false
   ElMessage.success('总结已保存')
 }
 
 // 复制功能
-const copyWeekSummary = async () => {
-  try {
-    await navigator.clipboard.writeText(weekSummary.value)
-    ElMessage.success('已复制到剪贴板')
-  } catch (err) {
-    ElMessage.error('复制失败')
-  }
+const copyWeekSummary = () => {
+  navigator.clipboard.writeText(weekSummary.value)
+    .then(() => ElMessage.success('已复制到剪贴板'))
+    .catch(() => ElMessage.error('复制失败'))
 }
 
-const copyMonthSummary = async () => {
-  try {
-    await navigator.clipboard.writeText(monthSummary.value)
-    ElMessage.success('已复制到剪贴板')
-  } catch (err) {
-    ElMessage.error('复制失败')
-  }
+const copyMonthSummary = () => {
+  navigator.clipboard.writeText(monthSummary.value)
+    .then(() => ElMessage.success('已复制到剪贴板'))
+    .catch(() => ElMessage.error('复制失败'))
 }
 
 // 处理编辑
@@ -379,168 +453,266 @@ const handleEdit = (type: 'week' | 'month') => {
 }
 
 // 保存编辑
-const handleSaveEdit = async () => {
+const handleSaveEdit = () => {
   if (!editingContent.value.trim()) {
     ElMessage.warning('总结内容不能为空')
     return
   }
 
   saving.value = true
-  try {
-    const response = await summaryService.saveSummary({
-      content: editingContent.value,
-      type: activeTab.value,
-      dateRange: activeTab.value === 'week' ? selectedWeek.value : selectedMonth.value
-    })
 
+  let startDate, endDate
+
+  if (activeTab.value === 'week') {
+    startDate = dayjs(selectedWeek.value).startOf('week').format('YYYY-MM-DD')
+    endDate = dayjs(selectedWeek.value).endOf('week').format('YYYY-MM-DD')
+  } else {
+    startDate = dayjs(selectedMonth.value).startOf('month').format('YYYY-MM-DD')
+    endDate = dayjs(selectedMonth.value).endOf('month').format('YYYY-MM-DD')
+  }
+
+  summaryService.saveSummary({
+    content: editingContent.value,
+    summary_type: activeTab.value === 'week' ? 'weekly' : 'monthly',
+    start_date: startDate,
+    end_date: endDate
+  }).then(() => {
     if (activeTab.value === 'week') {
-      weekSummary.value = response.content
+      weekSummary.value = editingContent.value
     } else {
-      monthSummary.value = response.content
+      monthSummary.value = editingContent.value
     }
 
     editDialogVisible.value = false
     ElMessage.success('保存成功')
-  } catch (error) {
+  }).catch(error => {
     console.error('保存失败:', error)
-  } finally {
+    ElMessage.error('保存失败')
+  }).finally(() => {
     saving.value = false
+  })
+}
+
+// 修改标签页切换处理
+const handleTabChange = (tab: string) => {
+  if (tab === 'week' && !weekSummary.value && selectedWeek.value) {
+    fetchSummary('week')
+  } else if (tab === 'month' && !monthSummary.value) {
+    if (!selectedMonth.value) {
+      selectedMonth.value = dayjs().format('YYYY-MM-DD')
+    }
+    fetchSummary('month')
   }
 }
 </script>
 
 <style scoped>
 .summary {
-  padding: 20px;
+  padding: 30px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.summary-header-container {
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.main-title {
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  font-weight: 600;
+  background: var(--primary-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+
+.custom-tabs :deep(.el-tabs__header) {
+  margin-bottom: 24px;
+}
+
+.custom-tabs :deep(.el-tabs__item) {
+  font-size: 16px;
+  padding: 0 24px;
+  height: 48px;
+  line-height: 48px;
+  transition: all 0.3s;
+}
+
+.custom-tabs :deep(.el-tabs__active-bar) {
+  height: 3px;
+  border-radius: 3px;
+  background-image: var(--primary-gradient);
+}
+
+.summary-card {
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
+  transition: all 0.3s;
+  overflow: hidden;
+  border: none;
+}
+
+.summary-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 16px 20px;
+  background-color: #fff;
+  border-bottom: 1px solid var(--border-color);
 }
 
-.summary-content {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
-
-.logs-section,
-.ai-summary {
-  padding: 20px;
-  border: 1px solid #eee;
-  border-radius: 4px;
-}
-
-h3 {
-  margin-top: 0;
-  margin-bottom: 20px;
-  font-size: 16px;
-  color: #666;
-}
-
-.log-content {
-  margin: 10px 0;
-}
-
-.summary-preview {
-  background-color: #f8f9fa;
-  border-radius: 4px;
-  padding: 16px;
-  margin-bottom: 16px;
-  max-height: 500px;
-  overflow-y: auto;
-}
-
-.preview-content {
-  white-space: pre-wrap;
-}
-
-.summary-actions {
-  margin-top: 12px;
+.header-left {
   display: flex;
-  gap: 12px;
-  justify-content: flex-end;
+  align-items: center;
+  gap: var(--spacing-md);
 }
 
-:deep(.el-timeline-item__content) {
-  max-width: 100%;
-}
-
-:deep(.markdown-body) {
-  background: none;
-}
-
-/* 生成对话框样式 */
-.generate-form {
+.header-right {
   display: flex;
-  flex-direction: column;
-  height: 60vh;
-  position: relative;
+  align-items: center;
 }
 
-.summary-preview {
-  height: 100%;
-  background-color: #f8f9fa;
-  border-radius: 4px;
-}
-
-.fixed-bottom {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background-color: white;
-  padding: 16px;
-  border-top: 1px solid var(--border-color);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.card-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .date-picker {
-  display: flex;
-  justify-content: flex-end;
+  width: 180px;
 }
 
-.form-item {
+.summary-content {
+  padding: var(--spacing-lg);
+}
+
+.ai-summary {
+  background-color: var(--bg-secondary);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s;
+}
+
+.summary-header {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.summary-title {
+  display: flex;
+  align-items: center;
   gap: var(--spacing-sm);
 }
 
-.form-label {
+.summary-icon {
+  color: var(--primary-color);
+  font-size: 20px;
+}
+
+.summary-header h3 {
+  margin: 0;
+  font-size: 16px;
   font-weight: 500;
   color: var(--text-primary);
+}
+
+.summary-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.action-button {
   display: flex;
   align-items: center;
-  gap: var(--spacing-xs);
+  gap: 4px;
+  padding: 8px 12px;
+  border-radius: var(--border-radius-md);
+  transition: all 0.2s;
 }
 
-.help-icon {
-  color: var(--text-secondary);
-  font-size: 16px;
-  cursor: help;
-}
-
-.preview-section {
-  margin-top: 16px;
-  border-top: 1px solid var(--border-color);
-  padding-top: 16px;
+.action-button:hover {
+  background-color: rgba(96, 199, 183, 0.1);
 }
 
 .summary-preview {
-  background-color: #f8f9fa;
-  border-radius: 4px;
-  padding: 16px;
-  max-height: 300px;
+  background-color: var(--bg-tertiary);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-lg);
+  min-height: 300px;
+  max-height: 600px;
   overflow-y: auto;
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.03);
+}
+
+.empty-state {
+  padding: var(--spacing-xl) 0;
+}
+
+.empty-icon {
+  font-size: 60px;
+  color: var(--text-light);
+  margin-bottom: var(--spacing-md);
+}
+
+.empty-text {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-bottom: var(--spacing-md);
+}
+
+.generate-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-size: 14px;
+  border-radius: var(--border-radius-md);
+  transition: all 0.3s;
+}
+
+.generate-button:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
 }
 
 /* 编辑对话框样式 */
+.edit-dialog :deep(.el-dialog__header) {
+  padding: 16px 20px;
+  margin: 0;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+}
+
+.edit-dialog :deep(.el-dialog__title) {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
 .edit-dialog :deep(.el-dialog__body) {
   padding: 0;
+}
+
+.edit-dialog :deep(.el-dialog__headerbtn) {
+  top: 16px;
 }
 
 .edit-container {
@@ -567,7 +739,7 @@ h3 {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
   border-top: 1px solid var(--border-color);
   background: var(--bg-secondary);
 }
@@ -579,41 +751,42 @@ h3 {
   align-items: center;
 }
 
-/* 总结预览区域样式 */
-.summary-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--spacing-md);
-}
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .summary {
+    padding: var(--spacing-md);
+  }
 
-.summary-actions {
-  display: flex;
-  gap: var(--spacing-xs);
-}
+  .header-left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+  }
 
-.summary-preview {
-  height: 100%;
-  background-color: #f8f9fa;
-  border-radius: 4px;
-}
+  .summary-preview {
+    padding: var(--spacing-md);
+  }
 
-.dialog-footer {
-  width: 100%;
-}
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+  }
 
-.dialog-footer :deep(.el-textarea) {
-  margin-bottom: 12px;
-}
+  .header-right {
+    width: 100%;
+  }
 
-.footer-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+  .date-picker {
+    width: 100%;
+  }
 
-.button-group {
-  display: flex;
-  gap: 12px;
+  .generate-button {
+    width: 100%;
+  }
+
+  .custom-tabs :deep(.el-tabs__item) {
+    padding: 0 16px;
+  }
 }
-</style> 
+</style>
