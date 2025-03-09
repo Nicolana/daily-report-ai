@@ -1,11 +1,6 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios'
 import { ElMessage } from 'element-plus'
-
-export interface ApiResponse<T = any> {
-  data: T
-  message?: string
-  status: number
-}
+import type { Response, PageResponse } from '@/types/response'
 
 export class ApiClient {
   private client: AxiosInstance
@@ -37,10 +32,14 @@ export class ApiClient {
     // 响应拦截器
     this.client.interceptors.response.use(
       (response) => {
+        const res = response.data
+        if (res.code !== 200) { // 假设 0 是成功状态码
+          ElMessage.error(res.message || '请求失败')
+          return Promise.reject(new Error(res.message || '请求失败'))
+        }
         return response
       },
       (error) => {
-        // 统一错误处理
         const message = error.response?.data?.message || '请求失败'
         ElMessage.error(message)
         return Promise.reject(error)
@@ -48,23 +47,29 @@ export class ApiClient {
     )
   }
 
-  protected async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.get<T>(url, config)
+  protected async get<T>(url: string, config?: AxiosRequestConfig): Promise<Response<T>> {
+    const response = await this.client.get<Response<T>>(url, config)
     return response.data
   }
 
-  protected async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.post<T>(url, data, config)
+  protected async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<Response<T>> {
+    const response = await this.client.post<Response<T>>(url, data, config)
     return response.data
   }
 
-  protected async put<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.put<T>(url, data, config)
+  protected async put<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<Response<T>> {
+    const response = await this.client.put<Response<T>>(url, data, config)
     return response.data
   }
 
-  protected async delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.delete<T>(url, config)
+  protected async delete<T>(url: string, config?: AxiosRequestConfig): Promise<Response<T>> {
+    const response = await this.client.delete<Response<T>>(url, config)
+    return response.data
+  }
+
+  // 添加分页请求方法
+  protected async getPage<T>(url: string, config?: AxiosRequestConfig): Promise<PageResponse<T>> {
+    const response = await this.client.get<PageResponse<T>>(url, config)
     return response.data
   }
 }

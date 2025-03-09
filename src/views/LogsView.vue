@@ -36,7 +36,7 @@
           <div class="group-header">
             <h3>{{ groupKey }}</h3>
           </div>
-          
+
           <el-timeline>
             <el-timeline-item
               v-for="log in logs"
@@ -114,8 +114,8 @@
           <template v-if="missingDates.length > 0">
             <p class="missing-dates-hint">
               还需要补充以下日期的日报：
-              <el-tag 
-                v-for="date in missingDates" 
+              <el-tag
+                v-for="date in missingDates"
                 :key="date"
                 size="small"
                 class="missing-date-tag"
@@ -194,15 +194,15 @@ watch(searchKeyword, async (newValue) => {
 
 const filteredLogs = computed(() => {
   let logs = store.logs
-  
+
   if (dateRange.value[0] && dateRange.value[1]) {
     logs = logs.filter(log => {
       const date = dayjs(log.report_date)
-      return date.isSameOrAfter(dateRange.value[0]) && 
+      return date.isSameOrAfter(dateRange.value[0]) &&
              date.isSameOrBefore(dateRange.value[1])
     })
   }
-  
+
   return logs
 })
 
@@ -210,31 +210,31 @@ const filteredLogs = computed(() => {
 const groupedLogs = computed(() => {
   const logs = filteredLogs.value
   const groups: { [key: string]: DailyReport[] } = {}
-  
+
   logs.forEach(log => {
     const date = dayjs(log.report_date)
-    const key = groupBy.value === 'week' 
+    const key = groupBy.value === 'week'
       ? `${date.year()}年第${date.week()}周`
       : date.format('YYYY年MM月')
-    
+
     if (!groups[key]) {
       groups[key] = []
     }
     groups[key].push(log)
   })
-  
+
   return groups
 })
 
 // 获取本周未填写的日期
 const missingDates = computed(() => {
   if (!dateRange.value[0] || !dateRange.value[1]) return []
-  
+
   const start = dayjs(dateRange.value[0])
   const end = dayjs(dateRange.value[1])
   const existingDates = new Set(filteredLogs.value.map(log => log.report_date))
   const missing: string[] = []
-  
+
   let current = start
   while (current.isSameOrBefore(end)) {
     if (!existingDates.has(current.format('YYYY-MM-DD'))) {
@@ -242,7 +242,7 @@ const missingDates = computed(() => {
     }
     current = current.add(1, 'day')
   }
-  
+
   return missing
 })
 
@@ -257,10 +257,10 @@ const formatTime = (date: string) => {
 }
 
 // 获取时间线项的类型
-const getTimelineItemType = (date: string) => {
+const getTimelineItemType = (date: string): any => {
   const today = dayjs()
   const logDate = dayjs(date)
-  
+
   if (logDate.isSame(today, 'day')) return 'primary'
   if (logDate.isSame(today.subtract(1, 'day'), 'day')) return 'success'
   return ''
@@ -270,7 +270,7 @@ const getTimelineItemType = (date: string) => {
 const getTagType = (date: string) => {
   const today = dayjs()
   const logDate = dayjs(date)
-  
+
   if (logDate.isSame(today, 'day')) return 'primary'
   if (logDate.isSame(today.subtract(1, 'day'), 'day')) return 'success'
   return 'info'
@@ -448,11 +448,11 @@ const handleDelete = async (log: DailyReport) => {
     flex-wrap: wrap;
     gap: var(--spacing-xs);
   }
-  
+
   .search-input {
     width: 100%;
   }
-  
+
   .date-picker {
     width: 100%;
   }
@@ -488,4 +488,4 @@ const handleDelete = async (log: DailyReport) => {
 .missing-date-tag {
   margin: 0 var(--spacing-xs);
 }
-</style> 
+</style>

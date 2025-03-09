@@ -14,12 +14,12 @@ export const useLogStore = defineStore('log', {
     loading: false,
     error: null
   }),
-  
+
   getters: {
     getLogsByDate: (state) => (date: string) => {
       return state.logs.filter((log) => dayjs(log.report_date).format('YYYY-MM-DD') === date)
     },
-    
+
     getLogsByDateRange: (state) => (startDate: string, endDate: string) => {
       return state.logs.filter((log) => {
         const reportDate = dayjs(log.report_date).format('YYYY-MM-DD')
@@ -27,13 +27,14 @@ export const useLogStore = defineStore('log', {
       }).sort((a, b) => dayjs(b.report_date).valueOf() - dayjs(a.report_date).valueOf())
     }
   },
-  
+
   actions: {
     async fetchLogs(keyword?: string, startDate?: string, endDate?: string) {
       this.loading = true
       this.error = null
       try {
-        this.logs = await dailyReportService.list({ keyword, start_date: startDate, end_date: endDate })
+        const res = await dailyReportService.list({ keyword, start_date: startDate, end_date: endDate })
+        this.logs = res.data?.items || []
       } catch (error) {
         this.error = '获取日志列表失败'
         console.error('Failed to fetch logs:', error)
@@ -50,7 +51,7 @@ export const useLogStore = defineStore('log', {
           content,
           report_date: dayjs(date).toISOString()
         })
-        this.logs.unshift(newLog)
+        this.logs.unshift(newLog.data)
       } catch (error) {
         this.error = '添加日志失败'
         console.error('Failed to add log:', error)
@@ -59,7 +60,7 @@ export const useLogStore = defineStore('log', {
         this.loading = false
       }
     },
-    
+
     async updateLog(id: string, content: string) {
       this.loading = true
       this.error = null
@@ -67,7 +68,7 @@ export const useLogStore = defineStore('log', {
         const updatedLog = await dailyReportService.update(id, { content })
         const index = this.logs.findIndex(log => log.id === id)
         if (index > -1) {
-          this.logs[index] = updatedLog
+          this.logs[index] = updatedLog.data
         }
       } catch (error) {
         this.error = '更新日志失败'
@@ -77,7 +78,7 @@ export const useLogStore = defineStore('log', {
         this.loading = false
       }
     },
-    
+
     async deleteLog(id: string) {
       this.loading = true
       this.error = null
@@ -96,4 +97,4 @@ export const useLogStore = defineStore('log', {
       }
     }
   }
-}) 
+})
