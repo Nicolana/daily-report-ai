@@ -23,10 +23,10 @@ export class ApiClient {
     this.client.interceptors.request.use(
       (config) => {
         // 这里可以添加token等认证信息
-        // const token = localStorage.getItem('token')
-        // if (token) {
-        //   config.headers.Authorization = `Bearer ${token}`
-        // }
+        const token = localStorage.getItem('token')
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`
+        }
         return config
       },
       (error) => {
@@ -67,4 +67,4 @@ export class ApiClient {
     const response = await this.client.delete<T>(url, config)
     return response.data
   }
-} 
+}
