@@ -7,7 +7,7 @@
       </div>
 
       <el-form
-        ref="loginForm"
+        ref="formRef"
         :model="loginForm"
         :rules="loginRules"
         class="login-form"
@@ -62,12 +62,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, type FormInstance } from 'element-plus'
 import { User, Lock } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/userStore'
 
 const router = useRouter()
 const userStore = useUserStore()
+
+const formRef = ref<FormInstance>()
 
 const loginForm = ref({
   username: '',

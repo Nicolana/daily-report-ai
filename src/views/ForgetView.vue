@@ -17,7 +17,7 @@
       <!-- 步骤1：验证邮箱 -->
       <el-form
         v-if="currentStep === 0"
-        ref="emailForm"
+        ref="formRef"
         :model="formData"
         :rules="emailRules"
         class="forget-form"
@@ -127,7 +127,7 @@
 <script setup lang="ts">
 import { ref, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, type FormItemRule } from 'element-plus'
+import { ElMessage, type FormItemRule, type FormInstance } from 'element-plus'
 import { Message, Lock, Key, CircleCheckFilled } from '@element-plus/icons-vue'
 import { userService } from '@/api/user'
 
@@ -138,6 +138,7 @@ const codeSending = ref(false)
 const countdown = ref(0)
 const countdownTimer = ref<number | null>(null)
 
+const formRef = ref<FormInstance>()
 const formData = ref({
   email: '',
   verifyCode: '',

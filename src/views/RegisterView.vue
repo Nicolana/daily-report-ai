@@ -7,7 +7,7 @@
       </div>
 
       <el-form
-        ref="registerForm"
+        ref="formRef"
         :model="registerForm"
         :rules="registerRules"
         class="register-form"
@@ -86,13 +86,15 @@
 <script setup lang="ts">
 import { ref, computed, onUnmounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, type FormItemRule } from 'element-plus'
+import { ElMessage, type FormItemRule, type FormInstance } from 'element-plus'
 import { useUserStore } from '../stores/userStore'
 import { Message, Lock, Key } from '@element-plus/icons-vue'
 import { userService } from '../api/user'
 
 const router = useRouter()
 const userStore = useUserStore()
+
+const formRef = ref<FormInstance>()
 
 const registerForm = reactive({
   email: '',

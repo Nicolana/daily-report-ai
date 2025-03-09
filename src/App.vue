@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import zhCn from 'element-plus/es/locale/lang/zh-cn'
+import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
 </script>
 
 <template>
@@ -175,5 +175,28 @@ import zhCn from 'element-plus/es/locale/lang/zh-cn'
 .el-button--large {
   padding: 12px 24px !important;
   font-size: 16px !important;
+}
+
+/* 输入框样式修复 */
+.el-input__wrapper {
+  box-shadow: 0 0 0 1px var(--border-color) inset !important;
+  transition: all 0.3s ease !important;
+}
+
+.el-input__wrapper:hover {
+  box-shadow: 0 0 0 1px var(--primary-color) inset !important;
+}
+
+.el-input__wrapper.is-focus {
+  box-shadow: 0 0 0 1px var(--primary-color) inset !important;
+}
+
+.el-input__inner {
+  color: var(--text-primary) !important;
+}
+
+.el-input.is-disabled .el-input__wrapper {
+  box-shadow: 0 0 0 1px #e4e7ed inset !important;
+  background-color: #f5f7fa !important;
 }
 </style>
