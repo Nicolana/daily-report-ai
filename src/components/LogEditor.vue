@@ -18,7 +18,7 @@
         />
       </div>
     </div>
-    
+
     <!-- 编辑器区域 -->
     <div class="editor-section">
       <div class="editor-container">
@@ -146,9 +146,9 @@ onMounted(async () => {
   if (isEdit.value) {
     loading.value = true
     try {
-      const log = await dailyReportService.getReport(props.id!)
-      content.value = log.content
-      selectedDate.value = dayjs(log.report_date).format('YYYY-MM-DD')
+      const res = await dailyReportService.getReport(props.id!)
+      content.value = res.data?.content || ''
+      selectedDate.value = dayjs(res.data?.report_date).format('YYYY-MM-DD')
     } catch (error) {
       ElMessage.error('未找到日志')
       router.push('/logs')
@@ -294,4 +294,4 @@ onMounted(async () => {
     height: calc(100vh - 250px);
   }
 }
-</style> 
+</style>
