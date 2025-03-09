@@ -11,7 +11,7 @@ export interface UserInfo {
 
 export interface UserCreate {
   email: string
-  username: string
+  username?: string
   code: string
   password: string
 }

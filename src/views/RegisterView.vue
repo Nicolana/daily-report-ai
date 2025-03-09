@@ -12,14 +12,6 @@
         :rules="registerRules"
         class="register-form"
       >
-        <el-form-item prop="username">
-          <el-input
-            v-model="registerForm.username"
-            placeholder="用户名"
-            :prefix-icon="User"
-          />
-        </el-form-item>
-
         <el-form-item prop="email">
           <div class="email-input-group">
             <el-input
@@ -92,18 +84,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, onUnmounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, type FormItemRule } from 'element-plus'
 import { useUserStore } from '../stores/userStore'
-import { User, Message, Lock, Key } from '@element-plus/icons-vue'
+import { Message, Lock, Key } from '@element-plus/icons-vue'
 import { userService } from '../api/user'
 
 const router = useRouter()
 const userStore = useUserStore()
 
-const registerForm = ref({
-  username: '',
+const registerForm = reactive({
   email: '',
   password: '',
   confirmPassword: '',
@@ -118,7 +109,7 @@ const countdownTimer = ref<number | null>(null)
 // 验证邮箱格式
 const isEmailValid = computed(() => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  return emailRegex.test(registerForm.value.email)
+  return emailRegex.test(registerForm.email)
 })
 
 // 发送验证码
@@ -129,7 +120,7 @@ const handleSendCode = () => {
   }
 
   codeSending.value = true
-  userService.sendVerificationCode(registerForm.value.email)
+  userService.sendVerificationCode(registerForm.email)
     .then(() => {
       ElMessage.success('验证码已发送')
       startCountdown()
@@ -168,8 +159,8 @@ const validatePass = (rule: any, value: string, callback: Function) => {
   if (value === '') {
     callback(new Error('请输入密码'))
   } else {
-    if (registerForm.value.confirmPassword !== '') {
-      if (registerForm.value.password !== registerForm.value.confirmPassword) {
+    if (registerForm.confirmPassword !== '') {
+      if (registerForm.password !== registerForm.confirmPassword) {
         callback(new Error('两次输入密码不一致!'))
       }
     }
@@ -180,7 +171,7 @@ const validatePass = (rule: any, value: string, callback: Function) => {
 const validatePass2 = (rule: any, value: string, callback: Function) => {
   if (value === '') {
     callback(new Error('请再次输入密码'))
-  } else if (value !== registerForm.value.password) {
+  } else if (value !== registerForm.password) {
     callback(new Error('两次输入密码不一致!'))
   } else {
     callback()
@@ -188,10 +179,6 @@ const validatePass2 = (rule: any, value: string, callback: Function) => {
 }
 
 const registerRules: Record<string, FormItemRule[]> = {
-  username: [
-    { required: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 3, max: 20, message: '长度在 3 到 20 个字符', trigger: 'blur' }
-  ],
   email: [
     { required: true, message: '请输入邮箱地址', trigger: 'blur' },
     { type: 'email', message: '请输入正确的邮箱地址', trigger: ['blur', 'change'] }
@@ -210,7 +197,7 @@ const registerRules: Record<string, FormItemRule[]> = {
 }
 
 const handleRegister = async () => {
-  if (!registerForm.value.verifyCode) {
+  if (!registerForm.verifyCode) {
     ElMessage.warning('请输入验证码')
     return
   }
@@ -218,10 +205,9 @@ const handleRegister = async () => {
   loading.value = true
   try {
     await userStore.register({
-      username: registerForm.value.username,
-      email: registerForm.value.email,
-      password: registerForm.value.password,
-      code: registerForm.value.verifyCode
+      email: registerForm.email,
+      password: registerForm.password,
+      code: registerForm.verifyCode
     })
     ElMessage.success('注册成功')
     router.push('/login')
@@ -318,5 +304,12 @@ const handleRegister = async () => {
   .send-code-btn {
     width: 100%;
   }
+}
+
+.email-input-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
 }
 </style>
