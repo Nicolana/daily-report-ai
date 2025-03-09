@@ -203,8 +203,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import * as ElementPlusIconsVue from '@element-plus/icons-vue'
-import { MdEditor } from 'md-editor-v3'
+import { MdEditor, type ToolbarNames } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
 import MarkdownRender from '../components/MarkdownRender.vue'
 import { useLogStore } from '../stores/logStore'
@@ -244,7 +243,7 @@ const isPreview = ref(false)
 const saving = ref(false)
 
 // 定义工具栏
-const toolbars = [
+const toolbars: ToolbarNames[] = [
   'bold',
   'underline',
   'italic',
@@ -319,11 +318,11 @@ const fetchSummary = (type: 'week' | 'month') => {
       startDate,
       endDate
     ).then(summaries => {
-      if (summaries && summaries.length > 0) {
+      if (summaries && summaries.data && summaries.data?.length > 0) {
         if (type === 'week') {
-          weekSummary.value = summaries[0].content
+          weekSummary.value = summaries.data?.[0].content
         } else {
-          monthSummary.value = summaries[0].content
+          monthSummary.value = summaries.data?.[0].content
         }
       } else {
         if (type === 'week') {
@@ -409,9 +408,9 @@ const handleGenerate = () => {
   }
 
   summaryService.generateSummary(params)
-    .then(({ content: summary }) => {
+    .then((res) => {
       // 更新预览内容
-      previewSummary.value = summary
+      previewSummary.value = res.data?.content || ''
     })
     .catch((error: any) => {
       ElMessage.error(error.response?.data?.message || '生成总结失败')
@@ -494,7 +493,7 @@ const handleSaveEdit = () => {
 }
 
 // 修改标签页切换处理
-const handleTabChange = (tab: string) => {
+const handleTabChange = (tab: any) => {
   if (tab === 'week' && !weekSummary.value && selectedWeek.value) {
     fetchSummary('week')
   } else if (tab === 'month' && !monthSummary.value) {

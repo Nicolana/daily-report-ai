@@ -1,10 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { userService, type UserInfo as ApiUserInfo } from '../api/user'
+import { userService, type UserInfo } from '../api/user'
 
-export interface UserInfo extends Required<ApiUserInfo> {
-  avatar?: string
-}
 
 export interface LoginParams {
   email: string
@@ -29,12 +26,12 @@ export const useUserStore = defineStore('user', () => {
     loading.value = true
     error.value = null
     try {
-      const { access_token, user } = await userService.login(params)
-      token.value = access_token
-      userInfo.value = user as UserInfo
-      localStorage.setItem('token', access_token)
+      const res = await userService.login(params)
+      token.value = res.data?.access_token || ''
+      userInfo.value = res.data?.user as UserInfo
+      localStorage.setItem('token', res.data?.access_token || '')
       if (params.remember) {
-        localStorage.setItem('userInfo', JSON.stringify(user))
+        localStorage.setItem('userInfo', JSON.stringify(res.data?.user))
       }
     } catch (err: any) {
       error.value = err.message
@@ -73,9 +70,9 @@ export const useUserStore = defineStore('user', () => {
     loading.value = true
     error.value = null
     try {
-      const user = await userService.getUserInfo()
-      userInfo.value = user as UserInfo
-      return user
+      const res = await userService.getUserInfo()
+      userInfo.value = res.data
+      return res.data
     } catch (err: any) {
       error.value = err.message
       throw err

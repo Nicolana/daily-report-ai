@@ -138,8 +138,8 @@ const handleGenerate = async () => {
       style: style.value
     }
 
-    const { content } = await summaryService.generateSummary(params)
-    previewContent.value = content
+    const res = await summaryService.generateSummary(params)
+    previewContent.value = res.data?.content || ''
   } catch (error: any) {
     ElMessage.error(error.response?.data?.message || '生成总结失败')
   } finally {
